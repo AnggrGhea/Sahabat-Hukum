@@ -1,0 +1,96 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\Consultation;
+use App\Models\LegalCase;
+use App\Models\Document;
+
+class AdminController extends Controller
+{
+    public function dashboard()
+    {
+        $data = [
+            'total_clients'         => User::where('role', 'klien')->count(),
+            'total_lawyers'         => User::where('role', 'advokat')->count(),
+            'active_cases'          => LegalCase::whereNotIn('status', ['Selesai', 'Dibatalkan'])->count(),
+            'pending_consultations' => Consultation::where('status', 'Menunggu')->count(),
+            'pending_documents'     => Document::where('status', 'Menunggu Pemeriksaan')->count(),
+            'today_schedules'       => \App\Models\Schedule::whereDate('start_at', today())->count(),
+        ];
+        return view('admin.dashboard', $data);
+    }
+
+    public function clients()
+    {
+        $clients = User::where('role', 'klien')
+            ->with('clientProfile')
+            ->orderBy('name')
+            ->get();
+        return view('admin.clients', compact('clients'));
+    }
+
+    public function lawyers()
+    {
+        $lawyers = User::where('role', 'advokat')
+            ->with('lawyerProfile')
+            ->orderBy('name')
+            ->get();
+        return view('admin.lawyers', compact('lawyers'));
+    }
+
+    public function cases()
+    {
+        $cases = LegalCase::with('client', 'lawyer')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return view('admin.cases', compact('cases'));
+    }
+
+    public function consultations()
+    {
+        $consultations = Consultation::with('client', 'lawyer')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return view('admin.consultations', compact('consultations'));
+    }
+
+    public function documents()
+    {
+        $documents = Document::with('client', 'lawyer', 'case')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return view('admin.documents', compact('documents'));
+    }
+
+    public function users()
+    {
+        $users = User::orderBy('role')->orderBy('name')->get();
+        return view('admin.users', compact('users'));
+    }
+
+    public function knowledge()
+    {
+        return view('admin.knowledge');
+    }
+
+    public function reports()
+    {
+        $data = [
+            'total_consultations'    => Consultation::count(),
+            'selesai_consultations'  => Consultation::where('status', 'Selesai')->count(),
+            'total_cases'            => LegalCase::count(),
+            'active_cases'           => LegalCase::whereNotIn('status', ['Selesai', 'Dibatalkan'])->count(),
+            'selesai_cases'          => LegalCase::where('status', 'Selesai')->count(),
+            'total_clients'          => User::where('role', 'klien')->count(),
+        ];
+        return view('admin.reports', compact('data'));
+    }
+
+    public function settings()
+    {
+        return view('admin.settings');
+    }
+}
