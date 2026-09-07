@@ -146,6 +146,18 @@
             font-size:.8rem; color:var(--red); line-height:1.5;
         }
 
+        .alert-success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: .75rem 1rem; margin-bottom: 1.25rem;
+            font-size: .8rem; color: #166534; line-height: 1.5;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .alert-success svg {
+            width: 18px; height: 18px; flex-shrink: 0; fill: #16a34a;
+        }
+
         .form-group { margin-bottom:18px; }
         .form-group label {
             display:block; font-size:.8rem; font-weight:600;
@@ -280,6 +292,15 @@
         <h2>Selamat Datang Kembali</h2>
         <p class="sub">Masuk ke akun Anda untuk melanjutkan.</p>
 
+        @if (session('success'))
+        <div class="alert-success">
+            <svg viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <div>{{ session('success') }}</div>
+        </div>
+        @endif
+
         @if ($errors->any())
         <div class="alert-err">
             @foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach
@@ -298,7 +319,7 @@
                 <div class="inp-wrap">
                     <input id="email" type="email" name="email"
                         placeholder="nama@email.com"
-                        value="{{ old('email') }}" required autofocus autocomplete="email">
+                        value="{{ old('email', session('registered_email')) }}" required autofocus autocomplete="email">
                 </div>
             </div>
 
@@ -324,7 +345,7 @@
             <div class="demo-box">
                 <div class="demo-label">Demonstrasi — Masuk sebagai:</div>
                 <div class="demo-btns">
-                    <button type="button" class="demo-btn active" id="demoKlien"
+                    <button type="button" class="demo-btn" id="demoKlien"
                         onclick="setDemo('klien@sahabathukum.test','password','klien')">Klien</button>
                     <button type="button" class="demo-btn" id="demoAdvokat"
                         onclick="setDemo('advokat@sahabathukum.test','password','advokat')">Advokat</button>
@@ -351,30 +372,45 @@
 <script>
     // Set demo credentials
     function setDemo(email, pw, role) {
-        document.getElementById('email').value = email;
-        document.getElementById('password').value = pw;
-        ['demoKlien','demoAdvokat','demoAdmin'].forEach(id =>
-            document.getElementById(id).classList.remove('active'));
-        document.getElementById('demo' + role.charAt(0).toUpperCase() + role.slice(1)).classList.add('active');
+        var emailInput = document.getElementById('email');
+        var pwInput = document.getElementById('password');
+        if (emailInput) emailInput.value = email;
+        if (pwInput) pwInput.value = pw;
+
+        var roles = ['demoKlien', 'demoAdvokat', 'demoAdmin'];
+        for (var i = 0; i < roles.length; i++) {
+            var btn = document.getElementById(roles[i]);
+            if (btn) btn.classList.remove('active');
+        }
+        var activeBtn = document.getElementById('demo' + role.charAt(0).toUpperCase() + role.slice(1));
+        if (activeBtn) activeBtn.classList.add('active');
     }
 
-    // Set klien as default on load
-    window.onload = () => setDemo('klien@sahabathukum.test','password','klien');
+    // Set demo as default only if email is empty and no alert exists
+    window.onload = function() {
+        var emailInput = document.getElementById('email');
+        var hasAlert = document.querySelector('.alert-err, .alert-success');
+        if (!hasAlert && emailInput && !emailInput.value) {
+            setDemo('klien@sahabathukum.test', 'password', 'klien');
+        } else {
+            var roles = ['demoKlien', 'demoAdvokat', 'demoAdmin'];
+            for (var i = 0; i < roles.length; i++) {
+                var btn = document.getElementById(roles[i]);
+                if (btn) btn.classList.remove('active');
+            }
+        }
+    };
 
     // Toggle password
     function toggleEye() {
-        const inp = document.getElementById('password');
-        const ico = document.getElementById('eyeIco');
+        var inp = document.getElementById('password');
+        var ico = document.getElementById('eyeIco');
         if (inp.type === 'password') {
             inp.type = 'text';
-            ico.innerHTML = `
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>`;
+            ico.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
         } else {
             inp.type = 'password';
-            ico.innerHTML = `
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>`;
+            ico.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
         }
     }
 </script>

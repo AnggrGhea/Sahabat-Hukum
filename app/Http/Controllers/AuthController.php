@@ -75,9 +75,10 @@ class AuthController extends Controller
             'phone' => $request->phone,
         ]);
 
-        Auth::login($user);
-
-        return redirect('/klien');
+        return redirect()->route('login')->with([
+            'success' => 'Pendaftaran berhasil! Silakan masuk dengan email dan kata sandi Anda.',
+            'registered_email' => $request->email,
+        ]);
     }
 
     public function logout(Request $request)
