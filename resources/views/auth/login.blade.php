@@ -199,37 +199,10 @@
         .eye-btn:hover { color:var(--navy); }
         .eye-btn svg { width:16px; height:16px; }
 
-        /* Demo box */
-        .demo-box {
-            border:1px solid var(--gray-200);
-            border-radius:8px; padding:12px 14px;
-            margin-bottom:20px; background:var(--white);
-        }
-        .demo-label {
-            font-size:.65rem; font-weight:700;
-            letter-spacing:.08em; text-transform:uppercase;
-            color:var(--gray-400); margin-bottom:8px;
-        }
-        .demo-btns { display:flex; gap:6px; }
-        .demo-btn {
-            flex:1; padding:7px 10px;
-            border:1.5px solid var(--gray-200);
-            border-radius:6px;
-            font-family:'Inter',sans-serif;
-            font-size:.8rem; font-weight:600;
-            cursor:pointer; background:var(--white);
-            color:var(--gray-600);
-            transition:all .15s;
-        }
-        .demo-btn:hover { border-color:var(--navy); color:var(--navy); }
-        .demo-btn.active {
-            background:var(--navy); color:var(--white);
-            border-color:var(--navy);
-        }
-
         /* Submit */
         .btn-masuk {
             width:100%; padding:11px;
+            margin-top:24px;
             background:var(--navy); color:var(--white);
             border:none; border-radius:8px;
             font-family:'Inter',sans-serif;
@@ -341,19 +314,6 @@
                 </div>
             </div>
 
-            <!-- Demo box -->
-            <div class="demo-box">
-                <div class="demo-label">Demonstrasi — Masuk sebagai:</div>
-                <div class="demo-btns">
-                    <button type="button" class="demo-btn" id="demoKlien"
-                        onclick="setDemo('klien@sahabathukum.test','password','klien')">Klien</button>
-                    <button type="button" class="demo-btn" id="demoAdvokat"
-                        onclick="setDemo('advokat@sahabathukum.test','password','advokat')">Advokat</button>
-                    <button type="button" class="demo-btn" id="demoAdmin"
-                        onclick="setDemo('admin@sahabathukum.test','password','admin')">Admin</button>
-                </div>
-            </div>
-
             <button type="submit" class="btn-masuk">
                 Masuk
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -370,37 +330,6 @@
 </div>
 
 <script>
-    // Set demo credentials
-    function setDemo(email, pw, role) {
-        var emailInput = document.getElementById('email');
-        var pwInput = document.getElementById('password');
-        if (emailInput) emailInput.value = email;
-        if (pwInput) pwInput.value = pw;
-
-        var roles = ['demoKlien', 'demoAdvokat', 'demoAdmin'];
-        for (var i = 0; i < roles.length; i++) {
-            var btn = document.getElementById(roles[i]);
-            if (btn) btn.classList.remove('active');
-        }
-        var activeBtn = document.getElementById('demo' + role.charAt(0).toUpperCase() + role.slice(1));
-        if (activeBtn) activeBtn.classList.add('active');
-    }
-
-    // Set demo as default only if email is empty and no alert exists
-    window.onload = function() {
-        var emailInput = document.getElementById('email');
-        var hasAlert = document.querySelector('.alert-err, .alert-success');
-        if (!hasAlert && emailInput && !emailInput.value) {
-            setDemo('klien@sahabathukum.test', 'password', 'klien');
-        } else {
-            var roles = ['demoKlien', 'demoAdvokat', 'demoAdmin'];
-            for (var i = 0; i < roles.length; i++) {
-                var btn = document.getElementById(roles[i]);
-                if (btn) btn.classList.remove('active');
-            }
-        }
-    };
-
     // Toggle password
     function toggleEye() {
         var inp = document.getElementById('password');
