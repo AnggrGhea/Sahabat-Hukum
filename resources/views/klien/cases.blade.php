@@ -72,6 +72,16 @@
 @endif
 
 @if($case)
+@php
+    $statusMap = [
+        'Persidangan' => 'badge-blue',
+        'Penyidikan'  => 'badge-blue',
+        'Selesai'     => 'badge-gray',
+        'Dibatalkan'  => 'badge-red',
+    ];
+    $statusBadge = $statusMap[$case->status ?? ''] ?? 'badge-green';
+@endphp
+
 {{-- Perkara Header Card --}}
 <div class="perkara-card">
     <div class="perkara-card-header">
@@ -79,14 +89,6 @@
             <div class="perkara-num-label">Nomor Perkara</div>
             <div class="perkara-num">{{ $case->case_number ?? '-' }}</div>
         </div>
-        @php
-            $statusBadge = match($case->status ?? '') {
-                'Persidangan','Penyidikan' => 'badge-blue',
-                'Selesai'     => 'badge-gray',
-                'Dibatalkan'  => 'badge-red',
-                default       => 'badge-green',
-            };
-        @endphp
         <span class="badge {{ $statusBadge }}">{{ $case->status ?? 'Aktif' }}</span>
     </div>
 
@@ -184,12 +186,12 @@
             <tbody>
                 @foreach($case->documents as $doc)
                 @php
-                    $docBadge = match($doc->status ?? '') {
+                    $docBadgeMap = [
                         'Sudah Diterima'       => 'badge-green',
                         'Menunggu Pemeriksaan' => 'badge-yellow',
                         'Perlu Diperbaiki'     => 'badge-red',
-                        default                => 'badge-gray',
-                    };
+                    ];
+                    $docBadge = $docBadgeMap[$doc->status ?? ''] ?? 'badge-gray';
                 @endphp
                 <tr>
                     <td class="td-bold">{{ $doc->name }}</td>
