@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdvokatController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\LegalAssistantController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,4 +74,9 @@ Route::middleware(['auth', 'role:klien'])->prefix('klien')->group(function () {
     Route::get('/perkara', [ClientController::class, 'cases'])->name('klien.cases');
     Route::get('/perkara/{id}', [ClientController::class, 'caseDetail'])->name('klien.cases.show');
     Route::post('/dokumen/{id}/upload', [ClientController::class, 'uploadDocument'])->name('klien.documents.upload');
+
+    // Asisten Hukum (RAG + Gemini AI)
+    Route::get('/asisten-hukum', [LegalAssistantController::class, 'index'])->name('klien.assistant');
+    Route::post('/asisten-hukum/chat', [LegalAssistantController::class, 'chat'])->name('klien.assistant.chat');
+    Route::post('/asisten-hukum/clear', [LegalAssistantController::class, 'clearHistory'])->name('klien.assistant.clear');
 });

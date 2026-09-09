@@ -398,6 +398,8 @@ class DemoUserSeeder extends Seeder
             ]);
         }
 
+        $this->call(KnowledgeSourceSeeder::class);
+
         $this->command->info('✅ Demo data seeded!');
         $this->command->line('   Admin   : admin@sahabathukum.test / password');
         $this->command->line('   Advokat : advokat@sahabathukum.test / password');

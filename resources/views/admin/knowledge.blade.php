@@ -35,34 +35,41 @@
                 </tr>
             </thead>
             <tbody>
+                @forelse($sources as $src)
                 <tr>
                     <td>
-                        <div style="font-weight: 500; color: var(--color-gray-dark);">Panduan Layanan Konsultasi</div>
-                        <div style="font-size: 0.75rem; color: var(--color-gray-text);">Teks / Artikel</div>
+                        <div style="font-weight: 500; color: var(--color-gray-dark);">{{ $src->title }}</div>
+                        <div style="font-size: 0.75rem; color: var(--color-gray-text);">{{ Str::limit($src->description ?? $src->source_type, 60) }}</div>
                     </td>
-                    <td>Prosedur Layanan</td>
-                    <td>10 Agu 2026</td>
-                    <td><span class="badge badge-success">Aktif</span></td>
+                    <td>{{ $src->source_type }}</td>
+                    <td>{{ $src->updated_at ? \Carbon\Carbon::parse($src->updated_at)->locale('id')->isoFormat('D MMM YYYY') : '—' }}</td>
+                    <td><span class="badge {{ $src->status === 'Aktif' ? 'badge-success' : 'badge-danger' }}">{{ $src->status }}</span></td>
                     <td class="text-right">
-                        <button class="btn btn-outline" style="padding: 0.25rem 0.5rem;"><i data-lucide="edit" style="width: 14px;"></i> Edit</button>
-                        <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; color: var(--color-red); border-color: #fca5a5;"><i data-lucide="trash-2" style="width: 14px;"></i></button>
+                        <button class="btn btn-outline" style="padding: 0.25rem 0.5rem;"><i data-lucide="eye" style="width: 14px;"></i> Lihat</button>
                     </td>
                 </tr>
+                @empty
                 <tr>
-                    <td>
-                        <div style="font-weight: 500; color: var(--color-gray-dark);">UU No. 1 Tahun 1974 tentang Perkawinan</div>
-                        <div style="font-size: 0.75rem; color: var(--color-gray-text);">PDF - 1.2 MB</div>
-                    </td>
-                    <td>Referensi Peraturan</td>
-                    <td>12 Agu 2026</td>
-                    <td><span class="badge badge-success">Aktif</span></td>
-                    <td class="text-right">
-                        <button class="btn btn-outline" style="padding: 0.25rem 0.5rem;"><i data-lucide="edit" style="width: 14px;"></i> Edit</button>
-                        <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; color: var(--color-red); border-color: #fca5a5;"><i data-lucide="trash-2" style="width: 14px;"></i></button>
-                    </td>
+                    <td colspan="5" style="text-align:center;padding:2rem;color:var(--color-gray-text);">Belum ada data sumber pengetahuan.</td>
                 </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('.search-box input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const val = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.table-container tbody tr');
+            rows.forEach(r => {
+                r.style.display = r.textContent.toLowerCase().includes(val) ? '' : 'none';
+            });
+        });
+    }
+});
+</script>
 @endsection

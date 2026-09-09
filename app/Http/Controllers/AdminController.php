@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Consultation;
 use App\Models\LegalCase;
 use App\Models\Document;
+use App\Models\KnowledgeSource;
 
 class AdminController extends Controller
 {
@@ -73,7 +74,10 @@ class AdminController extends Controller
 
     public function knowledge()
     {
-        return view('admin.knowledge');
+        $sources = KnowledgeSource::with('verifier')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return view('admin.knowledge', compact('sources'));
     }
 
     public function reports()
