@@ -28,7 +28,7 @@ class DemoUserSeeder extends Seeder
 
         // ─── ADVOKAT ─────────────────────────────────────────────────────────
         $advokat = User::firstOrCreate(['email' => 'advokat@sahabathukum.test'], [
-            'name'     => 'Adv. Dewi Kusuma, S.H.',
+            'name'     => 'Supri',
             'password' => Hash::make('password'),
             'role'     => 'advokat',
             'status'   => 'aktif',
@@ -36,6 +36,17 @@ class DemoUserSeeder extends Seeder
         LawyerProfile::firstOrCreate(['user_id' => $advokat->id], [
             'specialization' => 'Perdata & Pidana',
             'phone'          => '081200001111',
+        ]);
+
+        $hana = User::firstOrCreate(['email' => 'hana@sahabathukum.test'], [
+            'name'     => 'Hana Fauziah Balqis',
+            'password' => Hash::make('password'),
+            'role'     => 'advokat',
+            'status'   => 'aktif',
+        ]);
+        LawyerProfile::firstOrCreate(['user_id' => $hana->id], [
+            'specialization' => 'Hukum Pidana & Hukum Perdata',
+            'phone'          => '081233445566',
         ]);
 
         // ─── KLIEN ───────────────────────────────────────────────────────────
@@ -227,7 +238,7 @@ class DemoUserSeeder extends Seeder
                 [
                     'case_id'       => $perkara1->id,
                     'title'         => 'Perkara dibuat berdasarkan hasil konsultasi',
-                    'description'   => 'Adv. Dewi Kusuma, S.H. membuat perkara berdasarkan hasil konsultasi mengenai sengketa tanah warisan.',
+                    'description'   => 'Supri membuat perkara berdasarkan hasil konsultasi mengenai sengketa tanah warisan.',
                     'progress_date' => '2025-07-22',
                     'created_by'    => $advokat->id,
                     'created_at'    => Carbon::parse('2025-07-22'),

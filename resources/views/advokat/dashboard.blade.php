@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="greeting-section">
-    <h1 class="greeting-title">Selamat Pagi, {{ Auth::check() ? explode(' ', trim(str_replace('Adv.', '', Auth::user()->name)))[0] : 'Bu Dewi' }}.</h1>
+    <h1 class="greeting-title">Selamat Pagi, {{ Auth::check() ? explode(' ', trim(str_replace('Adv.', '', Auth::user()->name)))[0] : 'Advokat' }}.</h1>
     <p class="greeting-date">{{ \Carbon\Carbon::now()->locale('id')->isoFormat('dddd, D MMMM YYYY') }}</p>
 </div>
 

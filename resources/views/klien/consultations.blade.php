@@ -141,12 +141,8 @@
                 <label style="font-size:.78rem;font-weight:500;color:#374151;display:block;margin-bottom:4px;">Jenis Permasalahan *</label>
                 <select name="problem_type" required style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:9px 12px;font-size:.875rem;box-sizing:border-box;">
                     <option value="">-- Pilih Jenis --</option>
-                    <option value="Perdata">Perdata</option>
-                    <option value="Pidana">Pidana</option>
-                    <option value="Keluarga">Hukum Keluarga</option>
-                    <option value="Bisnis">Hukum Bisnis</option>
-                    <option value="Ketenagakerjaan">Ketenagakerjaan</option>
-                    <option value="Lainnya">Lainnya</option>
+                    <option value="Hukum Pidana">Hukum Pidana</option>
+                    <option value="Hukum Perdata">Hukum Perdata</option>
                 </select>
             </div>
             <div style="margin-bottom:14px;">

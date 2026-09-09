@@ -12,6 +12,16 @@
 </div>
 @endif
 
+@if(isset($errors) && $errors->any())
+<div style="background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:.875rem;font-weight:500;">
+    <ul style="margin:0;padding-left:18px;">
+        @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
 {{-- Breadcrumb --}}
 <div class="breadcrumb" style="margin-bottom:16px;">
     <a href="{{ route('klien.dashboard') }}">Beranda</a>
@@ -34,7 +44,7 @@
     </svg>
     <div>
         Halaman ini menampilkan perkara yang sedang ditangani oleh tim advokat kami.
-        Untuk informasi lebih lanjut, silakan hubungi advokat Anda melalui fitur <a href="#">Percakapan</a>.
+        Untuk informasi lebih lanjut, silakan hubungi advokat Anda melalui fitur <a href="{{ route('klien.consultations') }}">Konsultasi</a>.
     </div>
 </div>
 
@@ -67,17 +77,17 @@
     <div class="perkara-card-header">
         <div>
             <div class="perkara-num-label">Nomor Perkara</div>
-            <div class="perkara-num">{{ $case->case_number }}</div>
+            <div class="perkara-num">{{ $case->case_number ?? '-' }}</div>
         </div>
         @php
-            $statusBadge = match($case->status) {
+            $statusBadge = match($case->status ?? '') {
                 'Persidangan','Penyidikan' => 'badge-blue',
                 'Selesai'     => 'badge-gray',
                 'Dibatalkan'  => 'badge-red',
                 default       => 'badge-green',
             };
         @endphp
-        <span class="badge {{ $statusBadge }}">{{ $case->status }}</span>
+        <span class="badge {{ $statusBadge }}">{{ $case->status ?? 'Aktif' }}</span>
     </div>
 
     <div class="perkara-meta-grid">
@@ -87,7 +97,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
                 </svg>
-                {{ $case->case_type }}
+                {{ $case->case_type ?? '-' }}
             </div>
         </div>
         <div class="perkara-meta-item">
@@ -96,7 +106,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>
-                {{ $case->lawyer->name }}
+                {{ $case->lawyer?->name ?? 'Belum ditentukan' }}
             </div>
         </div>
         <div class="perkara-meta-item">
@@ -106,7 +116,7 @@
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                     <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                {{ \Carbon\Carbon::parse($case->started_at)->locale('id')->isoFormat('D MMMM YYYY') }}
+                {{ $case->started_at ? \Carbon\Carbon::parse($case->started_at)->locale('id')->isoFormat('D MMMM YYYY') : '—' }}
             </div>
         </div>
         <div class="perkara-meta-item">
@@ -115,7 +125,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                 </svg>
-                {{ $case->status }}
+                {{ $case->status ?? '—' }}
             </div>
         </div>
     </div>
@@ -139,7 +149,7 @@
                     @if(!$loop->last)<div class="tl-line"></div>@endif
                 </div>
                 <div style="flex:1;padding-top:4px;">
-                    <div class="tl-date">{{ \Carbon\Carbon::parse($prog->progress_date)->locale('id')->isoFormat('D MMM YYYY') }}</div>
+                    <div class="tl-date">{{ $prog->progress_date ? \Carbon\Carbon::parse($prog->progress_date)->locale('id')->isoFormat('D MMM YYYY') : '—' }}</div>
                     <div class="tl-title">{{ $prog->title }}</div>
                     @if($prog->description)
                     <div class="tl-desc">{{ $prog->description }}</div>
@@ -154,7 +164,7 @@
 </div>
 
 {{-- Documents --}}
-@if($case->documents->count() > 0)
+@if($case->documents && $case->documents->count() > 0)
 <div class="card" style="margin-top:16px;">
     <div class="card-header">
         <div class="card-title">Dokumen Perkara</div>
@@ -174,7 +184,7 @@
             <tbody>
                 @foreach($case->documents as $doc)
                 @php
-                    $docBadge = match($doc->status) {
+                    $docBadge = match($doc->status ?? '') {
                         'Sudah Diterima'       => 'badge-green',
                         'Menunggu Pemeriksaan' => 'badge-yellow',
                         'Perlu Diperbaiki'     => 'badge-red',
@@ -215,6 +225,10 @@
 </div>
 @endif
 
+@else
+<div class="card" style="text-align:center;padding:3rem 1.5rem;color:#94a3b8;margin-top:16px;">
+    <p style="font-size:.875rem;">Perkara tidak ditemukan atau belum dipilih.</p>
+</div>
 @endif {{-- end $case --}}
 @endif {{-- end $cases->isEmpty() --}}
 

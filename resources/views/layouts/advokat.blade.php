@@ -59,7 +59,7 @@
                     {{ substr(Auth::check() ? Auth::user()->name : 'Advokat', 0, 1) }}
                 </div>
                 <div class="sidebar-profile-info">
-                    <span class="sidebar-profile-name">{{ Auth::check() ? Auth::user()->name : 'Adv. Dewi Kusuma, S.H.' }}</span>
+                    <span class="sidebar-profile-name">{{ Auth::check() ? Auth::user()->name : 'Advokat' }}</span>
                     <span class="sidebar-profile-role">Advokat</span>
                 </div>
             </div>
@@ -91,7 +91,7 @@
                             {{ substr(Auth::check() ? Auth::user()->name : 'A', 0, 1) }}
                         </div>
                         <div class="header-profile-details">
-                            <span class="header-profile-name">{{ Auth::check() ? Auth::user()->name : 'Adv. Dewi Kusuma, S.H.' }}</span>
+                            <span class="header-profile-name">{{ Auth::check() ? Auth::user()->name : 'Advokat' }}</span>
                             <span class="header-profile-role">Advokat</span>
                         </div>
                         <i data-lucide="chevron-down" style="width: 16px; margin-left: 4px;"></i>
