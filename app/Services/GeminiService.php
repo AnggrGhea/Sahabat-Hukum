@@ -149,15 +149,7 @@ class GeminiService
             $modelToUse = $this->model;
             $url = "{$this->baseUrl}/{$modelToUse}:generateContent?key={$this->apiKey}";
 
-            $curlOptions = [
-                'curl' => [
-                    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-                    CURLOPT_SSL_SESSIONID_CACHE => false,
-                ],
-            ];
-
-            $response = Http::timeout(20)
-                ->withOptions($curlOptions)
+            $response = Http::timeout(25)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                 ])
@@ -181,8 +173,7 @@ class GeminiService
             if ($response->status() === 429 && $modelToUse !== 'gemini-3.5-flash-lite') {
                 Log::warning("Gemini 429 Rate Limit on {$modelToUse}. Attempting graceful fallback to gemini-3.5-flash-lite...");
                 $fallbackUrl = "{$this->baseUrl}/gemini-3.5-flash-lite:generateContent?key={$this->apiKey}";
-                $response = Http::timeout(20)
-                    ->withOptions($curlOptions)
+                $response = Http::timeout(25)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->post($fallbackUrl, [
                         'contents' => [
