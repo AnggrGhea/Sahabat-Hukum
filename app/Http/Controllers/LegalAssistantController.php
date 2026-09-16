@@ -18,10 +18,29 @@ class LegalAssistantController extends Controller
     }
 
     /**
-     * Display the Legal Assistant interface
+     * Display the Legal Assistant interface tailored by user role
      */
-    public function index()
+    public function index(Request $request)
     {
+        $user = auth()->user();
+        $role = $user?->role ?? 'klien';
+        $sessionKey = 'legal_assistant_messages_' . ($user?->id ?? 'guest');
+        $messages = session($sessionKey, []);
+        $isApiConfigured = $this->gemini->isConfigured();
+
+        if ($role === 'advokat') {
+            $faqs = [
+                'Pasal apa yang mengatur tindak pidana penganiayaan?',
+                'Dasar hukum mengenai kekerasan dalam rumah tangga apa?',
+                'Apa dasar hukum perceraian di Indonesia?',
+                'UU apa yang mengatur perlindungan konsumen?',
+                'Carikan dasar hukum mengenai wanprestasi.',
+            ];
+
+            return view('advokat.assistant', compact('faqs', 'messages', 'isApiConfigured'));
+        }
+
+        // Default: Klien
         $faqs = [
             'Apa dokumen yang diperlukan untuk konsultasi?',
             'Bagaimana proses pengajuan gugatan perdata?',
@@ -29,14 +48,11 @@ class LegalAssistantController extends Controller
             'Berapa lama proses persidangan berlangsung?',
         ];
 
-        $messages = session('legal_assistant_messages', []);
-        $isApiConfigured = $this->gemini->isConfigured();
-
         return view('klien.assistant', compact('faqs', 'messages', 'isApiConfigured'));
     }
 
     /**
-     * Process chat message via RAG and Gemini API
+     * Process chat message via RAG (Internal KB + JDIH BPK) and Gemini API
      */
     public function chat(Request $request)
     {
@@ -44,22 +60,31 @@ class LegalAssistantController extends Controller
             'message' => 'required|string|max:1000',
         ]);
 
+        @set_time_limit(60);
+
+        $user = auth()->user();
+        $role = $user?->role ?? 'klien';
         $question = trim($request->input('message'));
 
-        // 1. Retrieval: Cari konteks hukum dari Knowledge Base
-        $retrieval = $this->rag->retrieve($question);
+        // Retrieve current conversation history from session
+        $sessionKey = 'legal_assistant_messages_' . ($user?->id ?? 'guest');
+        $history = session($sessionKey, []);
 
-        // 2. Generation: Kirim context + pertanyaan ke Gemini API
-        $response = $this->gemini->generateAnswer(
-            $question,
-            $retrieval['context'],
-            $retrieval['sources']
-        );
+        try {
+            // High-level tiered retrieval & generation with conversation history
+            $response = $this->rag->ask($question, $role, $history);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("LegalAssistant Exception: " . $e->getMessage());
+            $response = [
+                'success' => false,
+                'answer'  => "Mohon maaf, penelusuran memerlukan waktu lebih lama dari perkiraan. Silakan ulangi pertanyaan Anda atau konsultasikan langsung dengan tim Advokat kami melalui tombol **Ajukan Konsultasi**.",
+                'sources' => [],
+            ];
+        }
 
         $time = now()->format('H.i');
 
-        // 3. Simpan riwayat percakapan ke session
-        $history = session('legal_assistant_messages', []);
+        // Save conversation history to role/user specific session
         $history[] = [
             'role'    => 'user',
             'content' => $question,
@@ -72,11 +97,11 @@ class LegalAssistantController extends Controller
             'time'    => $time,
         ];
 
-        // Batasi riwayat maksimal 30 pesan terakhir per sesi
+        // Limit history to 30 messages
         if (count($history) > 30) {
             $history = array_slice($history, -30);
         }
-        session(['legal_assistant_messages' => $history]);
+        session([$sessionKey => $history]);
 
         return response()->json([
             'success' => $response['success'],
@@ -87,11 +112,13 @@ class LegalAssistantController extends Controller
     }
 
     /**
-     * Clear chat history session
+     * Clear chat history session for the current user
      */
-    public function clearHistory()
+    public function clearHistory(Request $request)
     {
-        session()->forget('legal_assistant_messages');
+        $user = auth()->user();
+        $sessionKey = 'legal_assistant_messages_' . ($user?->id ?? 'guest');
+        session()->forget($sessionKey);
 
         return response()->json([
             'success' => true,

@@ -51,9 +51,9 @@
                     </td>
                     <td><span class="badge {{ $badgeClass }}">{{ $case->status }}</span></td>
                     <td class="text-right">
-                        <button class="btn btn-outline" style="padding: 0.25rem 0.5rem;">
-                            <i data-lucide="eye" style="width: 14px;"></i> Detail
-                        </button>
+                        <a href="{{ route('admin.documents', ['case_id' => $case->id]) }}" class="btn btn-outline" style="padding: 0.25rem 0.5rem;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Lihat Dokumen Perkara">
+                            <i data-lucide="file-text" style="width: 14px;"></i> Dokumen
+                        </a>
                     </td>
                 </tr>
                 @empty

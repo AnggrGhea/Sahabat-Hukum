@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="/css/admin.css">
+    @stack('styles')
 </head>
 <body>
 
@@ -40,10 +41,13 @@
                 <a href="{{ route('advokat.clients') }}" class="nav-item {{ request()->routeIs('advokat.clients*') ? 'active' : '' }}">
                     <i data-lucide="users"></i> Klien
                 </a>
-                <a href="#" class="nav-item {{ request()->routeIs('advokat.documents*') ? 'active' : '' }}">
+                <a href="{{ route('advokat.assistant') }}" class="nav-item {{ request()->routeIs('advokat.assistant*') ? 'active' : '' }}">
+                    <i data-lucide="scale"></i> Asisten Hukum
+                </a>
+                <a href="{{ route('advokat.documents') }}" class="nav-item {{ request()->routeIs('advokat.documents*') ? 'active' : '' }}">
                     <i data-lucide="file-text"></i> Dokumen
                 </a>
-                <a href="#" class="nav-item {{ request()->routeIs('advokat.schedule*') ? 'active' : '' }}">
+                <a href="{{ route('advokat.schedule') }}" class="nav-item {{ request()->routeIs('advokat.schedule*') ? 'active' : '' }}">
                     <i data-lucide="calendar"></i> Jadwal
                 </a>
                 <a href="#" class="nav-item {{ request()->routeIs('advokat.chat*') ? 'active' : '' }}">
@@ -81,9 +85,12 @@
                 </div>
                 
                 <div class="header-actions">
-                    <button class="bell-button">
+                    @php $unreadCountAdv = Auth::check() ? Auth::user()->unreadNotifications->count() : 0; @endphp
+                    <button class="bell-button" title="Pemberitahuan">
                         <i data-lucide="bell"></i>
-                        <span class="bell-badge">4</span>
+                        @if($unreadCountAdv > 0)
+                        <span class="bell-badge">{{ $unreadCountAdv }}</span>
+                        @endif
                     </button>
                     
                     <div class="header-profile-menu">
@@ -108,5 +115,6 @@
     <script>
       lucide.createIcons();
     </script>
+    @stack('scripts')
 </body>
 </html>

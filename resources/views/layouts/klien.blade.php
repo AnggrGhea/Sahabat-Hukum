@@ -58,7 +58,7 @@
                 Perkara Saya
             </a>
 
-            <a href="#"
+            <a href="{{ route('klien.documents') }}"
                class="nav-item {{ request()->routeIs('klien.documents*') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -68,7 +68,7 @@
                 Dokumen
             </a>
 
-            <a href="#"
+            <a href="{{ route('klien.schedule') }}"
                class="nav-item {{ request()->routeIs('klien.schedule*') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -140,7 +140,10 @@
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                     </svg>
-                    <span class="notif-badge">3</span>
+                    @php $unreadCount = auth()->check() ? auth()->user()->unreadNotifications->count() : 0; @endphp
+                    @if($unreadCount > 0)
+                    <span class="notif-badge">{{ $unreadCount }}</span>
+                    @endif
                 </button>
                 <div class="header-user">
                     <div class="header-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'K', 0, 1)) }}</div>

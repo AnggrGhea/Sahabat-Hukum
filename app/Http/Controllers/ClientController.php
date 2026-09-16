@@ -8,6 +8,8 @@ use Carbon\Carbon;
 use App\Models\Consultation;
 use App\Models\LegalCase;
 use App\Models\Document;
+use App\Models\DocumentRequest;
+use App\Models\Schedule;
 use App\Models\User;
 
 class ClientController extends Controller
@@ -250,7 +252,12 @@ class ClientController extends Controller
             $case = LegalCase::with([
                 'lawyer',
                 'progress',
-                'documents'
+                'documents' => function ($q) {
+                    $q->with('uploader', 'verifier')->orderBy('created_at', 'desc');
+                },
+                'documentRequests' => function ($q) {
+                    $q->with('requester')->orderBy('created_at', 'desc');
+                },
             ])
                 ->where('client_id', $client->id)
                 ->find($activeId);
@@ -274,7 +281,12 @@ class ClientController extends Controller
         $case = LegalCase::with([
             'lawyer',
             'progress',
-            'documents'
+            'documents' => function ($q) {
+                $q->with('uploader', 'verifier')->orderBy('created_at', 'desc');
+            },
+            'documentRequests' => function ($q) {
+                $q->with('requester')->orderBy('created_at', 'desc');
+            },
         ])
             ->where('client_id', $client->id)
             ->findOrFail($id);
@@ -290,43 +302,343 @@ class ClientController extends Controller
         ));
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // DOKUMEN SAYA (HALAMAN MANAJEMEN DOKUMEN KLIEN)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function documents(Request $request)
+    {
+        $client = Auth::user();
+
+        $cases = LegalCase::where('client_id', $client->id)
+            ->with('lawyer')
+            ->orderBy('started_at', 'desc')
+            ->get();
+
+        $caseIds = $cases->pluck('id')->toArray();
+
+        $selectedCaseId = $request->query('case_id');
+        $statusFilter   = $request->query('status', 'all');
+        $search         = $request->query('q');
+
+        $query = Document::where(function ($q) use ($client, $caseIds) {
+            $q->where('client_id', $client->id)
+              ->orWhereIn('case_id', $caseIds);
+        })->with(['case.lawyer', 'uploader', 'verifier'])
+          ->orderBy('created_at', 'desc');
+
+        if ($selectedCaseId) {
+            $query->where('case_id', $selectedCaseId);
+        }
+
+        if ($statusFilter && $statusFilter !== 'all') {
+            if ($statusFilter === 'Terverifikasi') {
+                $query->whereIn('status', ['Terverifikasi', 'Sudah Diterima']);
+            } elseif ($statusFilter === 'Ditolak') {
+                $query->whereIn('status', ['Ditolak', 'Perlu Diperbaiki']);
+            } elseif ($statusFilter === 'Menunggu') {
+                $query->whereIn('status', ['Menunggu Verifikasi', 'Menunggu Pemeriksaan', 'Belum Diunggah']);
+            } else {
+                $query->where('status', $statusFilter);
+            }
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('document_type', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        $documents = $query->get();
+
+        // Permintaan dokumen yang masih pending dari advokat
+        $pendingRequests = DocumentRequest::where('client_id', $client->id)
+            ->where('status', 'Menunggu Upload')
+            ->with(['case.lawyer', 'requester'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Hitung statistik dokumen klien
+        $allClientDocs = Document::where(function ($q) use ($client, $caseIds) {
+            $q->where('client_id', $client->id)
+              ->orWhereIn('case_id', $caseIds);
+        })->get();
+
+        $stats = [
+            'total'        => $allClientDocs->count(),
+            'verified'     => $allClientDocs->filter(fn($d) => in_array($d->status, ['Terverifikasi', 'Sudah Diterima']))->count(),
+            'pending'      => $allClientDocs->filter(fn($d) => in_array($d->status, ['Menunggu Verifikasi', 'Menunggu Pemeriksaan', 'Belum Diunggah']))->count(),
+            'rejected'     => $allClientDocs->filter(fn($d) => in_array($d->status, ['Ditolak', 'Perlu Diperbaiki']))->count(),
+            'requests'     => $pendingRequests->count(),
+        ];
+
+        return view('klien.documents', compact(
+            'documents',
+            'cases',
+            'pendingRequests',
+            'stats',
+            'selectedCaseId',
+            'statusFilter',
+            'search'
+        ));
+    }
+
 
     // ─────────────────────────────────────────────────────────────────────────
-    // UPLOAD DOKUMEN
+    // UPLOAD DOKUMEN PERKARA
     // ─────────────────────────────────────────────────────────────────────────
 
-    public function uploadDocument(Request $request, $id)
+    public function uploadCaseDocument(Request $request, $caseId)
+    {
+        $request->validate([
+            'name'                => 'required|string|max:255',
+            'document_type'       => 'required|string|max:100',
+            'description'         => 'nullable|string|max:1000',
+            'document_request_id' => 'nullable|exists:document_requests,id',
+            'file'                => [
+                'required',
+                'file',
+                'max:10240', // 10MB
+                function ($attribute, $value, $fail) {
+                    if (!$value || !($value instanceof \Illuminate\Http\UploadedFile)) return;
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+                    if (!in_array($ext, $allowed)) {
+                        $fail('Format file tidak diizinkan. Hanya file PDF, JPG, JPEG, PNG, DOC, dan DOCX yang diperbolehkan.');
+                    }
+                },
+            ],
+        ], [
+            'file.required'    => 'Berkas dokumen wajib diunggah.',
+            'file.max'         => 'Ukuran file terlalu besar. Maksimum ukuran berkas adalah 10 MB.',
+            'name.required'    => 'Nama atau judul dokumen wajib diisi.',
+            'document_type.required' => 'Jenis dokumen wajib dipilih.',
+        ]);
+
+        $client = Auth::user();
+        $case   = LegalCase::where('client_id', $client->id)->findOrFail($caseId);
+
+        $file       = $request->file('file');
+        $ext        = strtolower($file->getClientOriginalExtension());
+        $uniqueName = (string) \Illuminate\Support\Str::uuid() . '.' . $ext;
+        $storedPath = $file->storeAs("documents/{$case->id}", $uniqueName, 'local');
+
+        $mimeType = null;
+        try {
+            $mimeType = $file->getMimeType();
+        } catch (\Throwable $e) {
+            $mimeType = $file->getClientMimeType() ?: 'application/octet-stream';
+        }
+
+        $document = Document::create([
+            'case_id'             => $case->id,
+            'client_id'           => $client->id,
+            'lawyer_id'           => $case->lawyer_id,
+            'document_request_id' => $request->document_request_id,
+            'uploaded_by'         => $client->id,
+            'name'                => $request->name,
+            'document_type'       => $request->document_type,
+            'description'         => $request->description,
+            'file_path'           => $storedPath,
+            'original_filename'   => $file->getClientOriginalName(),
+            'mime_type'           => $mimeType,
+            'file_size'           => $file->getSize(),
+            'status'              => 'Menunggu Verifikasi',
+            'is_from_lawyer'      => false,
+        ]);
+
+        // If fulfilling a document request
+        if ($request->filled('document_request_id')) {
+            $docReq = \App\Models\DocumentRequest::where('case_id', $case->id)
+                ->where('client_id', $client->id)
+                ->find($request->document_request_id);
+            if ($docReq) {
+                $docReq->update(['status' => 'Sudah Diupload']);
+            }
+        }
+
+        // Audit Log
+        \App\Models\DocumentAuditLog::record(
+            $document->id,
+            $case->id,
+            $client->id,
+            'upload',
+            "Klien ({$client->name}) mengunggah dokumen '{$document->name}' ({$document->document_type})."
+        );
+
+        // Notify Lawyer
+        if ($case->lawyer) {
+            $case->lawyer->notify(new \App\Notifications\NewDocumentUploadedNotification($document));
+        }
+
+        return redirect()
+            ->route('klien.cases.show', $case->id)
+            ->with('success', 'Dokumen berhasil diunggah dan sedang menunggu verifikasi dari Advokat.');
+    }
+
+    /**
+     * Upload ulang dokumen yang sebelumnya ditolak
+     */
+    public function reuploadDocument(Request $request, $id)
     {
         $request->validate([
             'file' => [
                 'required',
                 'file',
-                'mimes:pdf,jpg,jpeg,png',
-                'max:5120',
+                'max:10240',
+                function ($attribute, $value, $fail) {
+                    if (!$value || !($value instanceof \Illuminate\Http\UploadedFile)) return;
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+                    if (!in_array($ext, $allowed)) {
+                        $fail('Format file tidak diizinkan. Hanya file PDF, JPG, JPEG, PNG, DOC, dan DOCX yang diperbolehkan.');
+                    }
+                },
             ],
+            'description' => 'nullable|string|max:1000',
+        ], [
+            'file.required'  => 'Berkas dokumen pengganti wajib diunggah.',
+            'file.max'       => 'Ukuran file terlalu besar. Maksimum ukuran berkas adalah 10 MB.',
         ]);
 
         $client = Auth::user();
+        $oldDoc = Document::with('case')->where('client_id', $client->id)->findOrFail($id);
 
-        // Pastikan dokumen memang milik client yang sedang login
-        $document = Document::where('client_id', $client->id)
-            ->findOrFail($id);
+        if (!in_array($oldDoc->status, ['Ditolak', 'Perlu Diperbaiki'])) {
+            return redirect()->back()->with('error', 'Hanya dokumen berstatus ditolak yang dapat diunggah ulang.');
+        }
 
-        // Upload file
-        $path = $request->file('file')
-            ->store('documents', 'public');
+        $case       = $oldDoc->case;
+        $file       = $request->file('file');
+        $ext        = strtolower($file->getClientOriginalExtension());
+        $uniqueName = (string) \Illuminate\Support\Str::uuid() . '.' . $ext;
+        $storedPath = $file->storeAs("documents/{$case->id}", $uniqueName, 'local');
 
-        // Update dokumen
-        $document->update([
-            'file_path' => $path,
-            'status'    => 'Menunggu Pemeriksaan',
+        $rootParentId = $oldDoc->parent_id ?: $oldDoc->id;
+        $latestVersion = Document::where('id', $rootParentId)
+            ->orWhere('parent_id', $rootParentId)
+            ->max('version') ?? 1;
+
+        $mimeType = null;
+        try {
+            $mimeType = $file->getMimeType();
+        } catch (\Throwable $e) {
+            $mimeType = $file->getClientMimeType() ?: 'application/octet-stream';
+        }
+
+        $newDoc = Document::create([
+            'case_id'             => $case->id,
+            'client_id'           => $client->id,
+            'lawyer_id'           => $oldDoc->lawyer_id,
+            'document_request_id' => $oldDoc->document_request_id,
+            'uploaded_by'         => $client->id,
+            'parent_id'           => $rootParentId,
+            'version'             => $latestVersion + 1,
+            'name'                => $oldDoc->name,
+            'document_type'       => $oldDoc->document_type,
+            'description'         => $request->description ?: $oldDoc->description,
+            'file_path'           => $storedPath,
+            'original_filename'   => $file->getClientOriginalName(),
+            'mime_type'           => $mimeType,
+            'file_size'           => $file->getSize(),
+            'status'              => 'Menunggu Verifikasi',
+            'is_from_lawyer'      => false,
         ]);
 
+        // Audit Log
+        \App\Models\DocumentAuditLog::record(
+            $newDoc->id,
+            $case->id,
+            $client->id,
+            'reupload',
+            "Klien ({$client->name}) mengunggah ulang revisi dokumen '{$newDoc->name}' (Versi {$newDoc->version}) menggantikan versi sebelumnya yang ditolak dengan alasan: '{$oldDoc->rejection_reason}'."
+        );
+
+        // Notify Lawyer
+        if ($case && $case->lawyer) {
+            $case->lawyer->notify(new \App\Notifications\NewDocumentUploadedNotification($newDoc));
+        }
+
         return redirect()
-            ->back()
-            ->with(
-                'success',
-                'Dokumen berhasil diunggah dan menunggu pemeriksaan advokat.'
-            );
+            ->route('klien.cases.show', $case->id)
+            ->with('success', 'Dokumen revisi berhasil diunggah ulang dan sedang menunggu verifikasi.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // JADWAL KLIEN (READ-ONLY)
+    // ─────────────────────────────────────────────────────────────────────────
+    public function schedule(Request $request)
+    {
+        $client = Auth::user();
+        $now    = Carbon::now('Asia/Jakarta');
+
+        // Parameter view: bulanan, mingguan, agenda (default: bulanan)
+        $view = strtolower($request->query('view', 'bulanan'));
+        if (!in_array($view, ['bulanan', 'mingguan', 'agenda'])) {
+            $view = 'bulanan';
+        }
+
+        // Parameter bulan (format YYYY-MM, default: bulan berjalan)
+        $monthParam = $request->query('month');
+        if ($monthParam && preg_match('/^\d{4}-\d{2}$/', $monthParam)) {
+            try {
+                $targetDate = Carbon::createFromFormat('Y-m', $monthParam, 'Asia/Jakarta')->startOfMonth();
+            } catch (\Throwable $e) {
+                $targetDate = $now->copy()->startOfMonth();
+            }
+        } else {
+            $targetDate = $now->copy()->startOfMonth();
+        }
+
+        $currentMonth = $targetDate->format('Y-m');
+
+        // Rentang tanggal kalender bulanan (dimulai hari Minggu, berakhir hari Sabtu)
+        $monthStart = $targetDate->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY);
+        $monthEnd   = $targetDate->copy()->endOfMonth()->endOfWeek(Carbon::SATURDAY);
+
+        // Query jadwal bulan aktif untuk Klien ini (authorization: client_id = Auth::id())
+        $schedules = Schedule::where('client_id', $client->id)
+            ->whereBetween('start_at', [$monthStart, $monthEnd])
+            ->with(['lawyer', 'case', 'consultation'])
+            ->orderBy('start_at', 'asc')
+            ->get();
+
+        // Query Jadwal Mendatang (minimal hari ini, limit 5 terdekat, non-dibatalkan)
+        $upcomingSchedules = Schedule::where('client_id', $client->id)
+            ->where('start_at', '>=', $now->copy()->startOfDay())
+            ->where('status', '!=', 'Dibatalkan')
+            ->with(['lawyer', 'case', 'consultation'])
+            ->orderBy('start_at', 'asc')
+            ->limit(5)
+            ->get();
+
+        // Parameter tanggal terpilih opsional
+        $selectedDate = null;
+        $selectedDateParam = $request->query('date');
+        if ($selectedDateParam && preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDateParam)) {
+            $selectedDate = $selectedDateParam;
+        }
+
+        // Respon JSON untuk interaksi AJAX jika diminta
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'           => true,
+                'month'             => $currentMonth,
+                'schedules'         => $schedules,
+                'upcomingSchedules' => $upcomingSchedules,
+            ]);
+        }
+
+        return view('klien.schedule', compact(
+            'client',
+            'view',
+            'currentMonth',
+            'targetDate',
+            'selectedDate',
+            'schedules',
+            'upcomingSchedules'
+        ));
     }
 }

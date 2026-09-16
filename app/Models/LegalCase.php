@@ -49,6 +49,11 @@ class LegalCase extends Model
 
     public function documents()
     {
-        return $this->hasMany(Document::class, 'case_id');
+        return $this->hasMany(Document::class, 'case_id')->orderBy('created_at', 'desc');
+    }
+
+    public function documentRequests()
+    {
+        return $this->hasMany(DocumentRequest::class, 'case_id')->orderBy('created_at', 'desc');
     }
 }

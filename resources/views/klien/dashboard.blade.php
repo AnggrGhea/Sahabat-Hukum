@@ -76,7 +76,7 @@
 
 
     {{-- Dokumen Diperlukan --}}
-    <div class="stat-card">
+    <div class="stat-card" onclick="window.location.href='{{ route('klien.documents') }}'" style="cursor:pointer;" title="Lihat Dokumen Diperlukan">
         <div class="stat-icon-wrap stat-icon-orange">
             <svg
                 viewBox="0 0 24 24"

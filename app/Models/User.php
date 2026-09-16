@@ -88,4 +88,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Schedule::class, 'client_id');
     }
+
+    public function uploadedDocuments()
+    {
+        return $this->hasMany(Document::class, 'uploaded_by');
+    }
+
+    public function documentRequests()
+    {
+        return $this->hasMany(DocumentRequest::class, 'client_id');
+    }
 }

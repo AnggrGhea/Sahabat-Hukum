@@ -72,7 +72,7 @@
             <div style="flex:1;">
                 <div style="font-size:.75rem;color:#94a3b8;font-weight:600;margin-bottom:4px;">Asisten Hukum • 09.00</div>
                 <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px 12px 12px 2px;padding:16px 20px;color:#334155;line-height:1.6;font-size:.875rem;max-width:720px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">
-                    Selamat datang di Asisten Hukum Sahabat Hukum. Saya dapat membantu Anda memahami informasi hukum umum, persyaratan dokumen, dan prosedur layanan kami. Bagaimana saya dapat membantu Anda?
+                    Halo, saya Asisten Hukum. Terima kasih telah menghubungi kami. Saya dapat membantu Anda memahami informasi hukum umum, persyaratan dokumen, dan prosedur layanan kami. Bagaimana saya dapat membantu Anda?
                 </div>
             </div>
         </div>
@@ -103,9 +103,21 @@
                         <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                             <span style="font-size:.7rem;color:#64748b;font-weight:600;">Sumber Hukum:</span>
                             @foreach($msg['sources'] as $src)
-                            <span style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;">
-                                {{ $src['title'] ?? $src }}
-                            </span>
+                                @php
+                                    $title = is_array($src) ? ($src['title'] ?? 'Sumber Hukum') : $src;
+                                    $url = is_array($src) ? ($src['url'] ?? null) : null;
+                                @endphp
+                                @if($url)
+                                <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
+                                   style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                    {{ $title }}
+                                </a>
+                                @else
+                                <span style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;">
+                                    {{ $title }}
+                                </span>
+                                @endif
                             @endforeach
                         </div>
                         @endif
@@ -256,11 +268,17 @@ document.addEventListener('DOMContentLoaded', function() {
             sourcesHtml = `
                 <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                     <span style="font-size:.7rem;color:#64748b;font-weight:600;">Sumber Hukum:</span>
-                    ${sources.map(s => `
-                        <span style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;">
-                            ${escapeHtml(s.title || s)}
-                        </span>
-                    `).join('')}
+                    ${sources.map(s => {
+                        const title = escapeHtml(s.title || s);
+                        const url = s.url || null;
+                        if (url) {
+                            return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                ${title}
+                            </a>`;
+                        }
+                        return `<span style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;">${title}</span>`;
+                    }).join('')}
                 </div>
             `;
         }
@@ -294,8 +312,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function formatMarkdown(str) {
-        // Convert **bold** to <strong>bold</strong>
-        return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        if (!str) return '';
+        // If unclosed ** exists, balance it
+        const boldCount = (str.match(/\*\*/g) || []).length;
+        if (boldCount % 2 !== 0) {
+            str += '**';
+        }
+        // Bold: **text** with dotAll support
+        let formatted = str.replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>');
+        // Italic: *text*
+        formatted = formatted.replace(/(?<!\*)\*(?!\*)([^\*\n]+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+        return formatted;
     }
 
     // Send Question
@@ -325,7 +352,14 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ message: question })
         })
-        .then(response => response.json())
+        .then(async response => {
+            const data = await response.json().catch(() => null);
+            if (!response.ok) {
+                const msg = data && data.answer ? data.answer : 'Mohon maaf, penelusuran memerlukan waktu lebih lama dari perkiraan atau server sedang sibuk. Silakan coba ajukan pertanyaan Anda kembali sesaat lagi.';
+                return { success: false, answer: msg, sources: [] };
+            }
+            return data || { success: false, answer: 'Mohon maaf, terjadi kendala saat memproses respons.', sources: [] };
+        })
         .then(data => {
             loadingIndicator.style.display = 'none';
             chatInput.disabled = false;
@@ -343,7 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
             chatInput.disabled = false;
             btnSend.disabled = false;
             chatInput.focus();
-            appendAssistantMessage('Terjadi kesalahan jaringan. Silakan periksa koneksi Anda dan coba lagi.', [], timeStr);
+            console.error('Chat error:', err);
+            appendAssistantMessage('Mohon maaf, penelusuran memerlukan waktu lebih lama dari perkiraan atau server sedang sibuk. Silakan coba ajukan pertanyaan Anda kembali sesaat lagi.', [], timeStr);
         });
     }
 
