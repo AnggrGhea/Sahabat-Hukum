@@ -8,6 +8,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LegalAssistantController;
 
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\ConversationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,6 +20,7 @@ use App\Http\Controllers\DocumentController;
 Route::get('/', function () {
     return redirect('/login');
 });
+
 
 
 // Authentication Routes
@@ -87,6 +89,11 @@ Route::middleware(['auth', 'role:advokat'])->prefix('advokat')->group(function (
 
     // Jadwal
     Route::get('/jadwal', [AdvokatController::class, 'schedule'])->name('advokat.schedule');
+
+    // Percakapan
+    Route::get('/percakapan', [ConversationController::class, 'index'])->name('advokat.chat');
+    Route::post('/percakapan/{id}/messages', [ConversationController::class, 'sendMessage'])->name('advokat.chat.send');
+    Route::get('/percakapan/{id}/messages', [ConversationController::class, 'getMessages'])->name('advokat.chat.messages');
 });
 
 // ─── Klien Routes ──────────────────────────────────────────────────────────
@@ -108,4 +115,9 @@ Route::middleware(['auth', 'role:klien'])->prefix('klien')->group(function () {
     Route::get('/asisten-hukum', [LegalAssistantController::class, 'index'])->name('klien.assistant');
     Route::post('/asisten-hukum/chat', [LegalAssistantController::class, 'chat'])->name('klien.assistant.chat');
     Route::post('/asisten-hukum/clear', [LegalAssistantController::class, 'clearHistory'])->name('klien.assistant.clear');
+
+    // Percakapan
+    Route::get('/percakapan', [ConversationController::class, 'index'])->name('klien.chat');
+    Route::post('/percakapan/{id}/messages', [ConversationController::class, 'sendMessage'])->name('klien.chat.send');
+    Route::get('/percakapan/{id}/messages', [ConversationController::class, 'getMessages'])->name('klien.chat.messages');
 });

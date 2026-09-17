@@ -50,7 +50,7 @@
                 <a href="{{ route('advokat.schedule') }}" class="nav-item {{ request()->routeIs('advokat.schedule*') ? 'active' : '' }}">
                     <i data-lucide="calendar"></i> Jadwal
                 </a>
-                <a href="#" class="nav-item {{ request()->routeIs('advokat.chat*') ? 'active' : '' }}">
+                <a href="{{ route('advokat.chat') }}" class="nav-item {{ request()->routeIs('advokat.chat*') ? 'active' : '' }}">
                     <i data-lucide="message-circle"></i> Percakapan
                 </a>
                 <a href="#" class="nav-item">

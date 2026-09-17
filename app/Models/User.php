@@ -94,6 +94,16 @@ class User extends Authenticatable
         return $this->hasMany(Document::class, 'uploaded_by');
     }
 
+    public function conversationsAsClient()
+    {
+        return $this->hasMany(Conversation::class, 'client_id');
+    }
+
+    public function conversationsAsLawyer()
+    {
+        return $this->hasMany(Conversation::class, 'lawyer_id');
+    }
+
     public function documentRequests()
     {
         return $this->hasMany(DocumentRequest::class, 'client_id');

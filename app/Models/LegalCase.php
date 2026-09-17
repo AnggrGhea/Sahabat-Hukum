@@ -56,4 +56,9 @@ class LegalCase extends Model
     {
         return $this->hasMany(DocumentRequest::class, 'case_id')->orderBy('created_at', 'desc');
     }
+
+    public function conversations()
+    {
+        return $this->hasMany(Conversation::class, 'case_id')->orderBy('last_message_at', 'desc');
+    }
 }
