@@ -132,6 +132,14 @@
                 </div>
             </div>
             <div class="p-topbar-actions">
+                @php
+                    $caseConv = \App\Models\Conversation::where('case_id', $case->id)->first();
+                @endphp
+                @if($caseConv)
+                <a href="{{ route('advokat.chat', ['conversation_id' => $caseConv->id]) }}" class="btn-minta-dokumen" style="background:#0b1a30; color:#fff; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    <i data-lucide="message-circle" style="width:14px;"></i> Percakapan
+                </a>
+                @endif
                 <button type="button" onclick="document.getElementById('form-progress').classList.toggle('hidden')" class="btn-tambah-perkembangan">
                     <i data-lucide="plus" style="width:14px;"></i> Tambah Perkembangan
                 </button>

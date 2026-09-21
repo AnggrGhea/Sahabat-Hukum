@@ -135,6 +135,13 @@
             <div class="k-actions">
                 <div class="k-action-title">Tindakan Cepat</div>
 
+                {{-- Buka Percakapan --}}
+                @if($consultation->conversation)
+                <a href="{{ route('advokat.chat', ['conversation_id' => $consultation->conversation->id]) }}" class="k-action-btn primary" style="background:#0b1a30; border-color:#0b1a30; color:#fff;">
+                    <i data-lucide="message-circle" style="width:16px;"></i> Buka Percakapan
+                </a>
+                @endif
+
                 {{-- Jadwalkan --}}
                 @if(in_array($consultation->status, ['Menunggu', 'Dijadwalkan']))
                 <button onclick="document.getElementById('form-jadwal').classList.toggle('hidden')" class="k-action-btn">

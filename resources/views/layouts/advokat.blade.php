@@ -50,8 +50,16 @@
                 <a href="{{ route('advokat.schedule') }}" class="nav-item {{ request()->routeIs('advokat.schedule*') ? 'active' : '' }}">
                     <i data-lucide="calendar"></i> Jadwal
                 </a>
+                @php
+                    $unreadChatAdv = Auth::check() ? \App\Models\Message::whereHas('conversation', function($q) {
+                        $q->where('lawyer_id', Auth::id());
+                    })->where('sender_id', '!=', Auth::id())->where('is_read', false)->count() : 0;
+                @endphp
                 <a href="{{ route('advokat.chat') }}" class="nav-item {{ request()->routeIs('advokat.chat*') ? 'active' : '' }}">
                     <i data-lucide="message-circle"></i> Percakapan
+                    @if($unreadChatAdv > 0)
+                        <span class="nav-item-badge" style="background:#ef4444; color:#fff; font-weight:700;">{{ $unreadChatAdv }}</span>
+                    @endif
                 </a>
                 <a href="#" class="nav-item">
                     <i data-lucide="bell"></i> Pemberitahuan <span class="nav-item-badge">4</span>

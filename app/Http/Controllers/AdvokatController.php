@@ -54,7 +54,7 @@ class AdvokatController extends Controller
         $lawyer = Auth::user();
         $filter = $request->query('status', 'Semua');
 
-        $query = Consultation::where('lawyer_id', $lawyer->id)->with('client');
+        $query = Consultation::where('lawyer_id', $lawyer->id)->with(['client', 'conversation']);
         if ($filter !== 'Semua') {
             $query->where('status', $filter);
         }
@@ -62,7 +62,7 @@ class AdvokatController extends Controller
 
         // Load first item as active by default
         $activeId     = $request->query('id', $consultations->first()?->id);
-        $consultation = Consultation::with('client', 'lawyer', 'case')
+        $consultation = Consultation::with(['client', 'lawyer', 'case', 'conversation'])
             ->where('lawyer_id', $lawyer->id)
             ->find($activeId);
 
@@ -72,11 +72,11 @@ class AdvokatController extends Controller
     public function consultationDetail($id)
     {
         $lawyer       = Auth::user();
-        $consultation = Consultation::with('client', 'lawyer', 'case')
+        $consultation = Consultation::with(['client', 'lawyer', 'case', 'conversation'])
             ->where('lawyer_id', $lawyer->id)->findOrFail($id);
         $filter       = 'Semua';
         $consultations = Consultation::where('lawyer_id', $lawyer->id)
-            ->with('client')->orderBy('created_at', 'desc')->get();
+            ->with(['client', 'conversation'])->orderBy('created_at', 'desc')->get();
         return view('advokat.consultations', compact('consultations', 'consultation', 'filter'));
     }
 
@@ -306,6 +306,15 @@ class AdvokatController extends Controller
             'progress_date' => now()->toDateString(),
             'created_by'    => $lawyer->id,
         ]);
+
+        // Link conversation to the new case after validating participants
+        $conversation = \App\Models\Conversation::where('consultation_id', $consultation->id)->first();
+        if ($conversation && (int)$conversation->client_id === (int)$case->client_id && (int)$conversation->lawyer_id === (int)$case->lawyer_id) {
+            $conversation->update([
+                'case_id' => $case->id,
+                'title'   => 'Perkara: ' . $case->case_number . ' — ' . $case->title,
+            ]);
+        }
 
         return redirect()->route('advokat.cases.show', $case->id)
             ->with('success', 'Perkara berhasil dibuat.');

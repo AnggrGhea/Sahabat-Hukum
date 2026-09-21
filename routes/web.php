@@ -46,6 +46,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/lawyers', [AdminController::class, 'lawyers'])->name('admin.lawyers');
     Route::get('/cases', [AdminController::class, 'cases'])->name('admin.cases');
     Route::get('/consultations', [AdminController::class, 'consultations'])->name('admin.consultations');
+    Route::post('/consultations/{id}/assign-lawyer', [AdminController::class, 'assignLawyer'])->name('admin.consultations.assign');
     Route::get('/documents', [AdminController::class, 'documents'])->name('admin.documents');
     Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
     Route::get('/knowledge', [AdminController::class, 'knowledge'])->name('admin.knowledge');

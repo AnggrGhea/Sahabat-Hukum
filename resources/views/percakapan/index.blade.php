@@ -5,11 +5,11 @@
 
 @push('styles')
 <style>
-    /* Chat Container Styles */
+    /* Chat Layout Container */
     .chat-page-container {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
         margin-top: 4px;
     }
 
@@ -27,25 +27,218 @@
     }
 
     .chat-title-header {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         font-weight: 700;
         color: #0b1a30;
-        margin-bottom: 16px;
+        margin-bottom: 4px;
         letter-spacing: -0.01em;
     }
 
+    /* 2-Pane WhatsApp Layout Card */
     .chat-main-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 14px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-        display: flex;
-        flex-direction: column;
-        min-height: 560px;
-        height: calc(100vh - 200px);
-        max-height: 820px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        height: calc(100vh - 190px);
+        min-height: 580px;
+        max-height: 840px;
         position: relative;
         overflow: hidden;
+    }
+
+    @media (max-width: 900px) {
+        .chat-main-card {
+            grid-template-columns: 1fr;
+        }
+        .chat-left-pane {
+            display: var(--mobile-left-display, block);
+        }
+        .chat-right-pane {
+            display: var(--mobile-right-display, none);
+        }
+    }
+
+    /* ══════════ LEFT PANE: DAFTAR PERCAKAPAN ══════════ */
+    .chat-left-pane {
+        border-right: 1px solid #e2e8f0;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .chat-left-header {
+        padding: 16px;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+    }
+
+    .chat-search-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .chat-search-icon {
+        position: absolute;
+        left: 12px;
+        width: 16px;
+        height: 16px;
+        color: #94a3b8;
+        pointer-events: none;
+    }
+
+    .chat-search-input {
+        width: 100%;
+        padding: 9px 12px 9px 36px;
+        font-size: 0.84rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #ffffff;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .chat-search-input:focus {
+        border-color: #0b1a30;
+        box-shadow: 0 0 0 2px rgba(11, 26, 48, 0.1);
+    }
+
+    .chat-conversations-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 0;
+    }
+
+    .conversation-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f8fafc;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.15s;
+        position: relative;
+    }
+
+    .conversation-item:hover {
+        background: #f8fafc;
+    }
+
+    .conversation-item.active {
+        background: #f1f5f9;
+        border-left: 3px solid #0b1a30;
+    }
+
+    .conv-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #1e3a5f;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .conv-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .conv-top-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2px;
+    }
+
+    .conv-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #0b1a30;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+
+    .conv-time {
+        font-size: 0.72rem;
+        color: #94a3b8;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .conv-context-tag {
+        font-size: 0.72rem;
+        color: #0369a1;
+        background: #e0f2fe;
+        padding: 1px 7px;
+        border-radius: 4px;
+        display: inline-block;
+        font-weight: 600;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 220px;
+    }
+
+    .conv-bottom-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .conv-snippet {
+        font-size: 0.8rem;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+    }
+
+    .conv-unread-badge {
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 0.68rem;
+        font-weight: 700;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+        flex-shrink: 0;
+    }
+
+    .conv-empty-list {
+        padding: 40px 20px;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+
+    /* ══════════ RIGHT PANE: DETAIL PERCAKAPAN ══════════ */
+    .chat-right-pane {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #f8fafc;
+        overflow: hidden;
+        position: relative;
     }
 
     /* Top Contact Bar */
@@ -53,8 +246,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 24px;
-        border-bottom: 1px solid #f1f5f9;
+        padding: 14px 24px;
+        border-bottom: 1px solid #e2e8f0;
         background: #ffffff;
         z-index: 10;
     }
@@ -62,80 +255,42 @@
     .contact-profile-info {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 12px;
     }
 
     .contact-avatar {
-        width: 46px;
-        height: 46px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         background: #0b1a30;
         color: #ffffff;
         font-weight: 700;
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        box-shadow: 0 2px 6px rgba(11, 26, 48, 0.15);
     }
 
     .contact-details h3 {
-        font-size: 1rem;
+        font-size: 0.98rem;
         font-weight: 700;
         color: #0b1a30;
         margin: 0 0 2px 0;
     }
 
-    .contact-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.8rem;
-        color: #10b981;
+    .contact-role-badge {
+        font-size: 0.74rem;
+        color: #64748b;
         font-weight: 500;
     }
 
-    .status-dot {
-        width: 7px;
-        height: 7px;
-        background: #10b981;
-        border-radius: 50%;
-        display: inline-block;
-    }
-
-    .contact-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-icon-circle {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        color: #64748b;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
-
-    .btn-icon-circle:hover {
-        background: #f8fafc;
-        color: #0b1a30;
-        border-color: #cbd5e1;
-    }
-
-    /* Case Banner */
+    /* Context Banner */
     .chat-case-banner {
-        background: #f8fafc;
-        border-bottom: 1px solid #edf2f7;
-        padding: 10px 24px;
-        font-size: 0.84rem;
+        background: #f1f5f9;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 9px 24px;
+        font-size: 0.82rem;
         color: #475569;
         display: flex;
         align-items: center;
@@ -144,7 +299,7 @@
 
     .case-label {
         font-weight: 600;
-        color: #64748b;
+        color: #1e3a5f;
     }
 
     .case-title {
@@ -156,18 +311,18 @@
     .chat-messages-thread {
         flex: 1;
         overflow-y: auto;
-        padding: 24px 28px;
+        padding: 20px 24px;
         display: flex;
         flex-direction: column;
-        gap: 18px;
-        background: #fafafa;
+        gap: 14px;
+        background: #fdfdfd;
     }
 
     /* Date Separator */
     .chat-date-separator {
         text-align: center;
         position: relative;
-        margin: 10px 0 16px 0;
+        margin: 10px 0 14px 0;
     }
 
     .chat-date-separator::before {
@@ -187,7 +342,7 @@
         background: #f8fafc;
         padding: 4px 14px;
         border-radius: 20px;
-        font-size: 0.76rem;
+        font-size: 0.74rem;
         color: #64748b;
         font-weight: 500;
         z-index: 2;
@@ -197,8 +352,8 @@
     /* Message Bubbles */
     .message-row {
         display: flex;
-        align-items: flex-start;
-        gap: 10px;
+        align-items: flex-end;
+        gap: 8px;
         width: 100%;
     }
 
@@ -211,24 +366,24 @@
     }
 
     .msg-avatar {
-        width: 32px;
-        height: 32px;
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
-        background: #0b1a30;
+        background: #1e3a5f;
         color: #ffffff;
         font-weight: 700;
-        font-size: 0.78rem;
+        font-size: 0.75rem;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        margin-top: 2px;
+        margin-bottom: 4px;
     }
 
     .message-content-box {
         display: flex;
         flex-direction: column;
-        max-width: 68%;
+        max-width: 72%;
     }
 
     .message-row.incoming .message-content-box {
@@ -240,39 +395,39 @@
     }
 
     .message-bubble {
-        padding: 13px 18px;
-        font-size: 0.9rem;
-        line-height: 1.55;
+        padding: 10px 16px;
+        font-size: 0.88rem;
+        line-height: 1.5;
         word-break: break-word;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
 
     .message-row.incoming .message-bubble {
         background: #ffffff;
         color: #1e293b;
         border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        border-top-left-radius: 4px;
+        border-radius: 14px;
+        border-bottom-left-radius: 2px;
     }
 
     .message-row.outgoing .message-bubble {
         background: #0b1a30;
         color: #ffffff;
         border: 1px solid #0b1a30;
-        border-radius: 16px;
-        border-top-right-radius: 4px;
+        border-radius: 14px;
+        border-bottom-right-radius: 2px;
     }
 
     .message-time {
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         color: #94a3b8;
-        margin-top: 4px;
+        margin-top: 3px;
         padding: 0 4px;
     }
 
     /* Input Footer */
     .chat-input-footer {
-        padding: 16px 24px;
+        padding: 14px 20px;
         background: #ffffff;
         border-top: 1px solid #f1f5f9;
     }
@@ -290,26 +445,20 @@
     }
 
     .chat-input-wrapper:focus-within {
-        border-color: #c3a167;
-        box-shadow: 0 0 0 3px rgba(195, 161, 103, 0.15);
+        border-color: #0b1a30;
+        box-shadow: 0 0 0 3px rgba(11, 26, 48, 0.1);
     }
 
-    .btn-attachment {
+    .btn-attachment-disabled {
         background: none;
         border: none;
-        color: #94a3b8;
-        cursor: pointer;
+        color: #cbd5e1;
+        cursor: not-allowed;
         padding: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: color 0.15s;
         border-radius: 6px;
-    }
-
-    .btn-attachment:hover {
-        color: #0b1a30;
-        background: #f1f5f9;
     }
 
     .chat-text-input {
@@ -327,8 +476,8 @@
     }
 
     .btn-send-message {
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
         border-radius: 10px;
         border: none;
         background: #0b1a30;
@@ -341,13 +490,9 @@
         flex-shrink: 0;
     }
 
-    .btn-send-message:hover {
+    .btn-send-message:hover:not(:disabled) {
         background: #1e293b;
         transform: translateY(-1px);
-    }
-
-    .btn-send-message:active {
-        transform: translateY(0);
     }
 
     .btn-send-message:disabled {
@@ -382,129 +527,199 @@
         Percakapan
     </div>
 
-    {{-- Main Chat Card --}}
+    {{-- Main 2-Pane Card --}}
     <div class="chat-main-card">
-        @if($activeConversation)
-            @php
-                $otherParticipant = $activeConversation->getOtherParticipant($user->id);
-                $otherName = $otherParticipant?->name ?? 'Pengguna';
-                $otherInitial = strtoupper(substr($otherName, 0, 1));
-                $caseTitle = $activeConversation->legalCase?->case_number 
-                    ? ($activeConversation->legalCase->case_number . ' — ' . $activeConversation->legalCase->title)
-                    : ($activeConversation->title ?? 'Konsultasi Hukum');
-            @endphp
 
-            {{-- Top Contact Bar --}}
-            <div class="chat-contact-bar">
-                <div class="contact-profile-info">
-                    <div class="contact-avatar">
-                        {{ $otherInitial }}
-                    </div>
-                    <div class="contact-details">
-                        <h3>{{ $otherName }}</h3>
-                        <div class="contact-status">
-                            <span class="status-dot"></span> Online
-                        </div>
-                    </div>
-                </div>
-
-                <div class="contact-actions">
-                    <button class="btn-icon-circle" type="button" title="Panggil">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                        </svg>
-                    </button>
-                    <button class="btn-icon-circle" type="button" title="Opsi Percakapan">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="19" cy="12" r="1"></circle>
-                            <circle cx="5" cy="12" r="1"></circle>
-                        </svg>
-                    </button>
+        {{-- ══════════ LEFT PANE: DAFTAR PERCAKAPAN ══════════ --}}
+        <div class="chat-left-pane">
+            <div class="chat-left-header">
+                <div class="chat-search-wrapper">
+                    <svg class="chat-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text"
+                           id="searchConversationInput"
+                           class="chat-search-input"
+                           placeholder="Cari percakapan..."
+                           oninput="filterConversationList(this.value)">
                 </div>
             </div>
 
-            {{-- Perkara Banner --}}
-            <div class="chat-case-banner">
-                <span class="case-label">Perkara:</span>
-                <span class="case-title">{{ $caseTitle }}</span>
-            </div>
-
-            {{-- Message Thread --}}
-            <div class="chat-messages-thread" id="chatThread">
-                @php
-                    $lastDate = null;
-                @endphp
-
-                @forelse($messages as $msg)
+            <div class="chat-conversations-list" id="conversationListContainer">
+                @forelse($conversations as $conv)
                     @php
-                        $msgDate = $msg->created_at->translatedFormat('l, d F Y');
-                        $isMe = ((int)$msg->sender_id === (int)$user->id);
-                        $senderInitial = strtoupper(substr($msg->sender?->name ?? 'P', 0, 1));
+                        $otherUser = $conv->getOtherParticipant($user->id);
+                        $otherName = $otherUser?->name ?? 'Pengguna';
+                        $otherInitial = strtoupper(substr($otherName, 0, 1));
+                        $isActive = ($activeConversation && $activeConversation->id === $conv->id);
+
+                        $contextText = $conv->legalCase
+                            ? ($conv->legalCase->case_number ? "Perkara: {$conv->legalCase->case_number}" : "Perkara: {$conv->legalCase->title}")
+                            : ($conv->consultation ? "Konsultasi: {$conv->consultation->title}" : ($conv->title ?? 'Konsultasi'));
+
+                        $lastMsg = $conv->latestMessage;
+                        $snippet = $lastMsg ? \Illuminate\Support\Str::limit($lastMsg->body, 34) : 'Belum ada pesan.';
+                        $msgTime = $lastMsg ? $lastMsg->created_at->format('H.i') : '';
+                        $unreadCount = $conv->unreadCountFor($user->id);
+                        $chatUrl = $isAdvokat
+                            ? route('advokat.chat', ['conversation_id' => $conv->id])
+                            : route('klien.chat', ['conversation_id' => $conv->id]);
                     @endphp
 
-                    @if($lastDate !== $msgDate)
-                        <div class="chat-date-separator">
-                            <span class="chat-date-pill">{{ $msgDate }}</span>
+                    <a href="{{ $chatUrl }}"
+                       class="conversation-item {{ $isActive ? 'active' : '' }}"
+                       data-search="{{ strtolower($otherName . ' ' . $contextText . ' ' . $snippet) }}">
+                        <div class="conv-avatar">
+                            {{ $otherInitial }}
                         </div>
-                        @php $lastDate = $msgDate; @endphp
-                    @endif
-
-                    <div class="message-row {{ $isMe ? 'outgoing' : 'incoming' }}" id="msg-{{ $msg->id }}" data-id="{{ $msg->id }}">
-                        @if(!$isMe)
-                            <div class="msg-avatar">{{ $senderInitial }}</div>
-                        @endif
-
-                        <div class="message-content-box">
-                            <div class="message-bubble">
-                                {{ $msg->body }}
+                        <div class="conv-info">
+                            <div class="conv-top-row">
+                                <span class="conv-name">{{ $otherName }}</span>
+                                <span class="conv-time">{{ $msgTime }}</span>
                             </div>
-                            <span class="message-time">{{ $msg->created_at->format('H.i') }}</span>
+                            <div class="conv-context-tag">
+                                {{ $contextText }}
+                            </div>
+                            <div class="conv-bottom-row">
+                                <span class="conv-snippet">{{ $snippet }}</span>
+                                @if($unreadCount > 0)
+                                    <span class="conv-unread-badge">{{ $unreadCount }}</span>
+                                @endif
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 @empty
-                    <div class="chat-empty-state" id="emptyNotice">
-                        <p style="margin: 0; font-size: 0.9rem;">Belum ada riwayat pesan dalam percakapan ini.</p>
-                        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Kirim pesan di bawah untuk memulai obrolan.</p>
+                    <div class="conv-empty-list">
+                        <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin-bottom:8px;">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <p style="margin:0; font-weight:500; color:#64748b;">Belum ada percakapan</p>
+                        <p style="margin:4px 0 0 0; font-size:0.75rem; color:#94a3b8;">Percakapan aktif setelah konsultasi atau perkara ditetapkan.</p>
                     </div>
                 @endforelse
             </div>
+        </div>
 
-            {{-- Input Toolbar --}}
-            <div class="chat-input-footer">
-                <form id="chatForm" onsubmit="handleSendMessage(event)">
-                    <div class="chat-input-wrapper">
-                        <button type="button" class="btn-attachment" title="Lampirkan berkas">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                            </svg>
-                        </button>
+        {{-- ══════════ RIGHT PANE: DETAIL PERCAKAPAN ══════════ --}}
+        <div class="chat-right-pane">
+            @if($activeConversation)
+                @php
+                    $otherParticipant = $activeConversation->getOtherParticipant($user->id);
+                    $otherName = $otherParticipant?->name ?? 'Pengguna';
+                    $otherRole = ($otherParticipant?->role === 'advokat') ? 'Advokat' : 'Klien';
+                    $otherInitial = strtoupper(substr($otherName, 0, 1));
 
-                        <input type="text"
-                               id="chatInput"
-                               class="chat-text-input"
-                               placeholder="Tulis pesan..."
-                               autocomplete="off"
-                               required>
+                    if ($activeConversation->legalCase) {
+                        $caseNum = $activeConversation->legalCase->case_number;
+                        $caseTitleText = $activeConversation->legalCase->title;
+                        $fullContext = $caseNum ? "Perkara: {$caseNum} — {$caseTitleText}" : "Perkara: {$caseTitleText}";
+                    } elseif ($activeConversation->consultation) {
+                        $fullContext = "Konsultasi: " . $activeConversation->consultation->title;
+                    } else {
+                        $fullContext = $activeConversation->title ?? 'Konsultasi Hukum';
+                    }
+                @endphp
 
-                        <button type="submit" id="btnSend" class="btn-send-message" title="Kirim Pesan">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                            </svg>
-                        </button>
+                {{-- Top Contact Bar (Tanpa fake online status) --}}
+                <div class="chat-contact-bar">
+                    <div class="contact-profile-info">
+                        <div class="contact-avatar">
+                            {{ $otherInitial }}
+                        </div>
+                        <div class="contact-details">
+                            <h3>{{ $otherName }}</h3>
+                            <div class="contact-role-badge">
+                                {{ $otherRole }}
+                            </div>
+                        </div>
                     </div>
-                </form>
-            </div>
-        @else
-            <div class="chat-empty-state">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px;">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <h3 style="color:#0b1a30; font-size:1.1rem; margin-bottom:4px;">Belum Ada Percakapan Aktif</h3>
-                <p style="font-size:0.875rem; color:#64748b; max-width:380px;">Percakapan akan aktif secara otomatis saat Anda memiliki perkara atau konsultasi yang sedang ditangani.</p>
-            </div>
-        @endif
+                </div>
+
+                {{-- Context Banner --}}
+                <div class="chat-case-banner">
+                    <span class="case-label">Konteks:</span>
+                    <span class="case-title">{{ $fullContext }}</span>
+                </div>
+
+                {{-- Message Thread --}}
+                <div class="chat-messages-thread" id="chatThread">
+                    @php $lastDate = null; @endphp
+
+                    @forelse($messages as $msg)
+                        @php
+                            $msgDate = $msg->created_at->translatedFormat('l, d F Y');
+                            $isMe = ((int)$msg->sender_id === (int)$user->id);
+                            $senderInitial = strtoupper(substr($msg->sender?->name ?? 'P', 0, 1));
+                        @endphp
+
+                        @if($lastDate !== $msgDate)
+                            <div class="chat-date-separator">
+                                <span class="chat-date-pill">{{ $msgDate }}</span>
+                            </div>
+                            @php $lastDate = $msgDate; @endphp
+                        @endif
+
+                        <div class="message-row {{ $isMe ? 'outgoing' : 'incoming' }}" id="msg-{{ $msg->id }}" data-id="{{ $msg->id }}">
+                            @if(!$isMe)
+                                <div class="msg-avatar">{{ $senderInitial }}</div>
+                            @endif
+
+                            <div class="message-content-box">
+                                <div class="message-bubble">
+                                    {{ $msg->body }}
+                                </div>
+                                <span class="message-time">{{ $msg->created_at->format('H.i') }}</span>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="chat-empty-state" id="emptyNotice">
+                            <p style="margin: 0; font-size: 0.9rem; font-weight:500;">Belum ada riwayat pesan dalam percakapan ini.</p>
+                            <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Kirim pesan di bawah untuk memulai obrolan.</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                {{-- Input Toolbar --}}
+                <div class="chat-input-footer">
+                    <form id="chatForm" onsubmit="handleSendMessage(event)">
+                        <div class="chat-input-wrapper">
+                            {{-- Attachment button disabled per scope agreement --}}
+                            <button type="button" class="btn-attachment-disabled" title="Lampiran berkas dapat diunggah melalui menu Dokumen" disabled>
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                                </svg>
+                            </button>
+
+                            <input type="text"
+                                   id="chatInput"
+                                   class="chat-text-input"
+                                   placeholder="Tulis pesan..."
+                                   autocomplete="off"
+                                   required>
+
+                            <button type="submit" id="btnSend" class="btn-send-message" title="Kirim Pesan">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            @else
+                {{-- Empty State jika belum memilih percakapan --}}
+                <div class="chat-empty-state">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px;">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <h3 style="color:#0b1a30; font-size:1.05rem; margin:0 0 6px 0;">Pilih Percakapan</h3>
+                    <p style="font-size:0.85rem; color:#64748b; max-width:320px; line-height:1.5; margin:0;">
+                        Pilih percakapan dari daftar di sebelah kiri untuk melihat pesan atau mengirim pesan.
+                    </p>
+                </div>
+            @endif
+        </div>
     </div>
 </div>
 @endsection
@@ -518,6 +733,15 @@
     const fetchUrl = "{{ $activeConversation ? ($isAdvokat ? route('advokat.chat.messages', $activeConversation->id) : route('klien.chat.messages', $activeConversation->id)) : '' }}";
     const csrfToken = "{{ csrf_token() }}";
 
+    function filterConversationList(val) {
+        const query = (val || '').toLowerCase().trim();
+        const items = document.querySelectorAll('.conversation-item');
+        items.forEach(item => {
+            const data = (item.dataset.search || '').toLowerCase();
+            item.style.display = data.includes(query) ? 'flex' : 'none';
+        });
+    }
+
     function scrollToBottom() {
         const thread = document.getElementById('chatThread');
         if (thread) {
@@ -525,9 +749,9 @@
         }
     }
 
-    // Scroll to bottom on initial page load
     document.addEventListener('DOMContentLoaded', () => {
         scrollToBottom();
+        setupRealtimeOrPolling();
     });
 
     function escapeHtml(text) {
@@ -538,12 +762,11 @@
 
     function appendMessageRow(msg) {
         if (!msg || !msg.id) return;
-        if (document.getElementById('msg-' + msg.id)) return; // prevent duplicate
+        if (document.getElementById('msg-' + msg.id)) return; // Prevent duplicate
 
         const thread = document.getElementById('chatThread');
         if (!thread) return;
 
-        // Hide empty notice if present
         const emptyNotice = document.getElementById('emptyNotice');
         if (emptyNotice) {
             emptyNotice.remove();
@@ -605,7 +828,7 @@
                     input.focus();
                 }
             } else {
-                console.error('Failed to send message:', response.status);
+                console.error('Failed to send message, HTTP status:', response.status);
             }
         } catch (err) {
             console.error('Error sending message:', err);
@@ -614,10 +837,45 @@
         }
     }
 
-    // Resilient Polling Fallback (every 3 seconds)
-    if (conversationId && fetchUrl) {
+    /**
+     * Requirement 2: Polling fallback ONLY if WebSocket is not connected
+     * Check real WebSocket connection state: window.Echo?.connector?.pusher?.connection?.state === 'connected'
+     */
+    function isWebSocketConnected() {
+        try {
+            return Boolean(
+                window.Echo &&
+                window.Echo.connector &&
+                window.Echo.connector.pusher &&
+                window.Echo.connector.pusher.connection &&
+                window.Echo.connector.pusher.connection.state === 'connected'
+            );
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function setupRealtimeOrPolling() {
+        if (!conversationId || !fetchUrl) return;
+
+        // 1. Attempt Echo broadcast listener if Echo exists
+        try {
+            if (window.Echo) {
+                window.Echo.private(`conversation.${conversationId}`)
+                    .listen('.message.sent', (data) => {
+                        if (data && data.id) {
+                            appendMessageRow(data);
+                        }
+                    });
+            }
+        } catch (err) {
+            console.info('Echo listener skipped:', err);
+        }
+
+        // 2. Setup Polling Fallback (every 3.5s, only if WS not connected and tab is active)
         setInterval(async () => {
-            if (document.hidden) return; // Don't poll aggressively when tab is inactive
+            if (document.hidden) return; // Don't poll when inactive tab
+            if (isWebSocketConnected()) return; // Don't poll if WebSocket is actively connected
 
             try {
                 const url = `${fetchUrl}?after_id=${lastMessageId}`;
@@ -636,7 +894,7 @@
             } catch (err) {
                 // Silently ignore network hiccup during background polling
             }
-        }, 3000);
+        }, 3500);
     }
 </script>
 @endpush

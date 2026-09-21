@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\MessageSent;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Notifications\NewChatMessageNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -21,24 +22,24 @@ class ConversationController extends Controller
         $isAdvokat = ($user->role === 'advokat');
         $isAdmin = ($user->role === 'admin');
 
-        // Fetch conversations for the current user
+        // Fetch conversations strictly for the current user
         $conversationsQuery = Conversation::with([
             'client.clientProfile',
             'lawyer.lawyerProfile',
+            'consultation',
             'legalCase',
             'latestMessage.sender',
         ]);
 
-        if (!$isAdmin) {
-            $conversationsQuery->where(function ($q) use ($user) {
-                $q->where('client_id', $user->id)
-                  ->orWhere('lawyer_id', $user->id);
-            });
+        if ($user->role === 'klien') {
+            $conversationsQuery->where('client_id', $user->id);
+        } elseif ($user->role === 'advokat') {
+            $conversationsQuery->where('lawyer_id', $user->id);
         }
 
         $conversations = $conversationsQuery
-            ->orderByDesc('last_message_at')
-            ->orderByDesc('updated_at')
+            ->orderByRaw('last_message_at IS NULL, last_message_at DESC')
+            ->orderByDesc('created_at')
             ->get();
 
         // Determine active conversation
@@ -49,6 +50,7 @@ class ConversationController extends Controller
             $candidate = Conversation::with([
                 'client.clientProfile',
                 'lawyer.lawyerProfile',
+                'consultation',
                 'legalCase',
             ])->find($requestedId);
 
@@ -96,7 +98,10 @@ class ConversationController extends Controller
     public function sendMessage(Request $request, $id)
     {
         $request->validate([
-            'message' => 'required|string|max:5000',
+            'message' => 'required|string|min:1|max:5000',
+        ], [
+            'message.required' => 'Pesan tidak boleh kosong.',
+            'message.min'      => 'Pesan tidak boleh kosong.',
         ]);
 
         $conversation = Conversation::findOrFail($id);
@@ -104,6 +109,12 @@ class ConversationController extends Controller
 
         $user = Auth::user();
         $messageText = trim($request->input('message'));
+        if ($messageText === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pesan tidak boleh kosong.',
+            ], 422);
+        }
 
         $message = $conversation->messages()->create([
             'sender_id' => $user->id,
@@ -120,6 +131,16 @@ class ConversationController extends Controller
             broadcast(new MessageSent($message))->toOthers();
         } catch (\Throwable $e) {
             Log::info("Broadcast skipped or unavailable: " . $e->getMessage());
+        }
+
+        // Notify recipient via database notification
+        $recipient = $conversation->getOtherParticipant($user->id);
+        if ($recipient) {
+            try {
+                $recipient->notify(new NewChatMessageNotification($message));
+            } catch (\Throwable $e) {
+                Log::warning("Chat notification dispatch failed: " . $e->getMessage());
+            }
         }
 
         return response()->json([

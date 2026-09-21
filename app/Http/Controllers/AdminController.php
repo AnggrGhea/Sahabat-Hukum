@@ -8,6 +8,9 @@ use App\Models\Consultation;
 use App\Models\LegalCase;
 use App\Models\Document;
 use App\Models\KnowledgeSource;
+use App\Models\Conversation;
+use App\Notifications\AdvocateAssignedNotification;
+use App\Notifications\ConsultationAssignedClientNotification;
 
 class AdminController extends Controller
 {
@@ -52,10 +55,78 @@ class AdminController extends Controller
 
     public function consultations()
     {
-        $consultations = Consultation::with('client', 'lawyer')
+        $consultations = Consultation::with(['client', 'lawyer', 'conversation'])
             ->orderBy('created_at', 'desc')
             ->get();
-        return view('admin.consultations', compact('consultations'));
+
+        $lawyers = User::where('role', 'advokat')
+            ->where('status', 'aktif')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.consultations', compact('consultations', 'lawyers'));
+    }
+
+    public function assignLawyer(Request $request, $id)
+    {
+        $request->validate([
+            'lawyer_id' => 'required|exists:users,id',
+        ], [
+            'lawyer_id.required' => 'Silakan pilih Advokat penanggung jawab.',
+            'lawyer_id.exists'   => 'Advokat yang dipilih tidak valid.',
+        ]);
+
+        $lawyer = User::where('role', 'advokat')->findOrFail($request->lawyer_id);
+        $consultation = Consultation::with('client')->findOrFail($id);
+
+        $oldLawyerId = $consultation->lawyer_id;
+        $consultation->update([
+            'lawyer_id' => $lawyer->id,
+        ]);
+
+        // Idempotent Conversation creation / update
+        $conversation = Conversation::where('consultation_id', $consultation->id)->first();
+
+        if ($conversation) {
+            // If reassigned, update lawyer_id so access cleanly transfers
+            if ((int) $conversation->lawyer_id !== (int) $lawyer->id) {
+                $conversation->update([
+                    'lawyer_id' => $lawyer->id,
+                ]);
+            }
+        } else {
+            // Requirement: last_message_at must be NULL upon initialization
+            $conversation = Conversation::create([
+                'consultation_id' => $consultation->id,
+                'client_id'       => $consultation->client_id,
+                'lawyer_id'       => $lawyer->id,
+                'title'           => 'Konsultasi: ' . $consultation->title,
+                'status'          => 'active',
+                'last_message_at' => null,
+            ]);
+        }
+
+        // Notify newly assigned lawyer
+        try {
+            $lawyer->notify(new AdvocateAssignedNotification($consultation));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Notification to lawyer failed: " . $e->getMessage());
+        }
+
+        // Notify client
+        if ($consultation->client) {
+            try {
+                $consultation->client->notify(new ConsultationAssignedClientNotification($consultation));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Notification to client failed: " . $e->getMessage());
+            }
+        }
+
+        $msg = $oldLawyerId && (int)$oldLawyerId !== (int)$lawyer->id
+            ? "Advokat berhasil dialihkan ke {$lawyer->name}. Hak akses percakapan telah berpindah."
+            : "Advokat {$lawyer->name} berhasil ditetapkan. Percakapan Klien dan Advokat telah aktif.";
+
+        return redirect()->route('admin.consultations')->with('success', $msg);
     }
 
     public function documents(Request $request = null)

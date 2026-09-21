@@ -118,7 +118,7 @@ class ClientController extends Controller
         $client = Auth::user();
 
         $consultations = Consultation::where('client_id', $client->id)
-            ->with('lawyer')
+            ->with(['lawyer', 'conversation'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -132,27 +132,14 @@ class ClientController extends Controller
         $consultation = null;
 
         if ($activeId) {
-            $consultation = Consultation::with('lawyer')
+            $consultation = Consultation::with(['lawyer', 'conversation'])
                 ->where('client_id', $client->id)
                 ->find($activeId);
         }
 
-        // Cari advokat yang pernah menangani client
-        $defaultLawyer = Consultation::where('client_id', $client->id)
-            ->whereNotNull('lawyer_id')
-            ->with('lawyer')
-            ->latest()
-            ->first()?->lawyer;
-
-        // Kalau belum pernah ditangani advokat, ambil advokat pertama
-        if (!$defaultLawyer) {
-            $defaultLawyer = User::where('role', 'advokat')->first();
-        }
-
         return view('klien.consultations', compact(
             'consultations',
-            'consultation',
-            'defaultLawyer'
+            'consultation'
         ));
     }
 
@@ -171,20 +158,9 @@ class ClientController extends Controller
 
         $client = Auth::user();
 
-        // Cari advokat yang pernah menangani client
-        $lawyer = Consultation::where('client_id', $client->id)
-            ->whereNotNull('lawyer_id')
-            ->latest()
-            ->first()?->lawyer;
-
-        // Kalau belum ada, gunakan advokat pertama
-        if (!$lawyer) {
-            $lawyer = User::where('role', 'advokat')->first();
-        }
-
         Consultation::create([
             'client_id'    => $client->id,
-            'lawyer_id'    => $lawyer?->id,
+            'lawyer_id'    => null,
             'problem_type' => $validated['problem_type'],
             'title'        => $validated['title'],
             'description'  => $validated['description'],
@@ -195,7 +171,7 @@ class ClientController extends Controller
             ->route('klien.consultations')
             ->with(
                 'success',
-                'Konsultasi berhasil diajukan! Advokat akan segera menghubungi Anda.'
+                'Konsultasi berhasil diajukan! Menunggu peninjauan Admin dan penetapan Advokat.'
             );
     }
 
@@ -208,21 +184,18 @@ class ClientController extends Controller
     {
         $client = Auth::user();
 
-        $consultation = Consultation::with('lawyer')
+        $consultation = Consultation::with(['lawyer', 'conversation'])
             ->where('client_id', $client->id)
             ->findOrFail($id);
 
         $consultations = Consultation::where('client_id', $client->id)
-            ->with('lawyer')
+            ->with(['lawyer', 'conversation'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $defaultLawyer = $consultation->lawyer;
-
         return view('klien.consultations', compact(
             'consultations',
-            'consultation',
-            'defaultLawyer'
+            'consultation'
         ));
     }
 

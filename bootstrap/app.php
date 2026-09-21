@@ -1,5 +1,29 @@
 <?php
 
+if (!function_exists('mb_strimwidth')) {
+    /**
+     * Polyfill for mb_strimwidth when php-mbstring extension is not loaded in PHP.
+     */
+    function mb_strimwidth(string $string, int $start, int $width, string $trimmarker = '', ?string $encoding = null): string
+    {
+        $encoding = $encoding ?? 'UTF-8';
+        $len = function_exists('mb_strlen') ? mb_strlen($string, $encoding) : strlen($string);
+        if ($len <= $width) {
+            return $string;
+        }
+
+        $markerLen = function_exists('mb_strlen') ? mb_strlen($trimmarker, $encoding) : strlen($trimmarker);
+        $cutWidth = max(0, $width - $markerLen);
+
+        if (function_exists('mb_substr')) {
+            $sub = mb_substr($string, $start, $cutWidth, $encoding);
+        } else {
+            $sub = substr($string, $start, $cutWidth);
+        }
+        return $sub . $trimmarker;
+    }
+}
+
 /*
 |--------------------------------------------------------------------------
 | Create The Application

@@ -89,7 +89,20 @@
             <div class="perkara-num-label">Nomor Perkara</div>
             <div class="perkara-num">{{ $case->case_number ?? '-' }}</div>
         </div>
-        <span class="badge {{ $statusBadge }}">{{ $case->status ?? 'Aktif' }}</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span class="badge {{ $statusBadge }}">{{ $case->status ?? 'Aktif' }}</span>
+            @php
+                $caseConv = \App\Models\Conversation::where('case_id', $case->id)->first();
+            @endphp
+            @if($caseConv)
+                <a href="{{ route('klien.chat', ['conversation_id' => $caseConv->id]) }}" class="btn-chat-link" style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#0b1a30; color:#fff; border-radius:8px; font-size:0.8rem; font-weight:600; text-decoration:none;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    Percakapan Perkara
+                </a>
+            @endif
+        </div>
     </div>
 
     <div class="perkara-meta-grid">
