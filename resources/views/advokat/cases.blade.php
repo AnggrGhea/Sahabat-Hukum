@@ -212,9 +212,15 @@
                 <div class="doc-summary-card">
                     <div class="doc-summary-header">
                         <h4 class="doc-summary-title">Dokumen</h4>
-                        <a href="{{ route('advokat.documents', ['case_id' => $case->id]) }}" class="doc-summary-link" title="Buka Pusat Manajemen Dokumen">
-                            Lihat Semua
-                        </a>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button type="button" onclick="openDocumentScanner({ caseId: {{ $case->id }}, isAdvocate: true })"
+                                    style="padding:4px 10px;background:#fff;border:1px solid #cbd5e1;border-radius:6px;color:#1e3a5f;font-size:.75rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                                <i data-lucide="camera" style="width:13px;height:13px;"></i> Scan Dokumen
+                            </button>
+                            <a href="{{ route('advokat.documents', ['case_id' => $case->id]) }}" class="doc-summary-link" title="Buka Pusat Manajemen Dokumen">
+                                Lihat Semua
+                            </a>
+                        </div>
                     </div>
 
                     <div class="doc-summary-list">

@@ -11,10 +11,17 @@
             <h1 style="font-size:1.35rem;font-weight:700;color:#0f172a;margin:0 0 4px 0;">Pemeriksaan & Manajemen Dokumen</h1>
             <p style="font-size:.825rem;color:#64748b;margin:0;">Verifikasi berkas klien, tolak dokumen tidak valid dengan alasan resmi, atau minta dokumen perkara baru.</p>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        @php
+            $lawyerCasesJson = $cases->map(fn($c) => ['id' => $c->id, 'title' => $c->title, 'case_number' => $c->case_number])->values();
+        @endphp
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <button type="button" onclick="openModalMintaDokumen()"
                     style="padding:8px 14px;background:#fff;color:#1e3a5f;border:1px solid #cbd5e1;border-radius:8px;font-size:.825rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                 <i data-lucide="file-plus" style="width:15px;height:15px;"></i> Minta Dokumen Klien
+            </button>
+            <button type="button" onclick="openDocumentScanner({ isAdvocate: true, casesList: {{ json_encode($lawyerCasesJson) }} })"
+                    style="padding:8px 14px;background:#fff;color:#1e3a5f;border:1px solid #cbd5e1;border-radius:8px;font-size:.825rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                <i data-lucide="camera" style="width:15px;height:15px;"></i> Scan Dokumen Advokat
             </button>
             <button type="button" onclick="openModalUploadAdvokat()"
                     style="padding:8px 16px;background:#1e3a5f;color:#fff;border:none;border-radius:8px;font-size:.825rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 4px rgba(30,58,95,.2);">

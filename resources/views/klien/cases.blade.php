@@ -267,13 +267,23 @@
                 <div style="font-size:.78rem;color:#64748b;">Kelola berkas bukti, identitas, dan dokumen hukum perkara Anda.</div>
             </div>
         </div>
-        <button type="button" class="btn btn-primary" onclick="openUploadModal()"
-                style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:.825rem;background:#1e3a5f;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;border:none;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Unggah Dokumen
-        </button>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" class="btn btn-outline" onclick="openDocumentScanner({ caseId: {{ $case->id }} })"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:.825rem;border:1px solid #cbd5e1;background:#fff;border-radius:8px;color:#1e3a5f;font-weight:600;cursor:pointer;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                Scan Dokumen
+            </button>
+            <button type="button" class="btn btn-primary" onclick="openUploadModal()"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:.825rem;background:#1e3a5f;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;border:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Unggah Dokumen
+            </button>
+        </div>
     </div>
 
     @if(!$case->documents || $case->documents->count() === 0)
@@ -282,7 +292,15 @@
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
         </svg>
         <p style="font-size:.875rem;margin-bottom:12px;color:#64748b;">Belum ada dokumen yang diunggah untuk perkara ini.</p>
-        <button type="button" class="btn btn-outline" onclick="openUploadModal()" style="font-size:.825rem;">Unggah Dokumen Pertama</button>
+        <div style="display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline" onclick="openDocumentScanner({ caseId: {{ $case->id }} })" style="font-size:.825rem;display:inline-flex;align-items:center;gap:6px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                </svg>
+                Scan Dokumen Pertama
+            </button>
+            <button type="button" class="btn btn-outline" onclick="openUploadModal()" style="font-size:.825rem;">Unggah Dokumen Pertama</button>
+        </div>
     </div>
     @else
     <div class="table-wrapper">
