@@ -1,8 +1,12 @@
 {{-- ═════════════════════════════════════════════════════════════════════════ --}}
 {{-- COMPONENT: Document Scanner Modal ala CamScanner (Klien & Advokat)      --}}
+{{-- Upgrade: Auto Document Detection, Auto-Crop 4 Sudut & Perspective Warp   --}}
 {{-- ═════════════════════════════════════════════════════════════════════════ --}}
 <div id="camScannerModal" class="cam-scanner-overlay" style="display:none;" aria-hidden="true">
     <div class="cam-scanner-container">
+
+        {{-- Toast / Auto-detection Notification Banner --}}
+        <div id="camAutoNotice" class="cam-auto-notice" style="display:none;"></div>
 
         {{-- ── TOP NAVIGATION BAR ── --}}
         <div class="cam-top-bar">
@@ -153,13 +157,20 @@
                 </button>
             </div>
 
-            {{-- Review Action Bar --}}
+            {{-- Review Action Bar (Termasuk Sesuaikan Sudut Manual) --}}
             <div class="cam-action-bar">
                 <button type="button" class="cam-btn-outline" id="camRetakePageBtn">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
                     </svg>
                     Scan Ulang
+                </button>
+                <button type="button" class="cam-btn-outline" id="camManualCropBtn" title="Koreksi posisi 4 sudut dokumen secara manual">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+                        <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>
+                    </svg>
+                    Sesuaikan Sudut
                 </button>
                 <button type="button" class="cam-btn-primary" id="camProceedSaveBtn">
                     Lanjut Simpan PDF
@@ -259,6 +270,26 @@
     max-width: 900px;
     margin: 0 auto;
     position: relative;
+}
+
+.cam-auto-notice {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    color: #38bdf8;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
 }
 
 .cam-top-bar {
@@ -805,8 +836,8 @@
         padding: 0 12px;
     }
     .cam-btn-outline, .cam-btn-primary {
-        padding: 8px 12px;
-        font-size: 0.75rem;
+        padding: 8px 10px;
+        font-size: 0.72rem;
     }
 }
 </style>
@@ -830,8 +861,9 @@ window.camScanner = (function() {
     let facingMode = 'environment';
     let currentStep = 'capture'; // 'capture', 'crop', 'review', 'metadata'
 
-    let pages = []; // [{ id, sourceImg, corners, rotation, filter, processedCanvas }]
+    let pages = []; // [{ id, sourceImgSrc, cleanCanvas, corners, rotation, filter, displayCanvas }]
     let activePageIndex = 0;
+    let isReEditingPage = false;
 
     // Crop UI drag tracking
     let isDragging = false;
@@ -896,7 +928,7 @@ window.camScanner = (function() {
         // Crop controls
         document.getElementById('camCropRotateBtn').addEventListener('click', rotateCurrentCrop);
         document.getElementById('camCropResetBtn').addEventListener('click', resetCropCorners);
-        document.getElementById('camCropApplyBtn').addEventListener('click', applyCropAndPerspective);
+        document.getElementById('camCropApplyBtn').addEventListener('click', () => applyCropAndPerspective());
 
         // Drag corners (Touch + Mouse)
         handles.forEach((h, idx) => {
@@ -918,13 +950,20 @@ window.camScanner = (function() {
         });
 
         document.getElementById('camAddPageBtn').addEventListener('click', () => {
+            isReEditingPage = false;
             goToStep('capture');
             startCamera();
         });
 
         document.getElementById('camRetakePageBtn').addEventListener('click', () => {
+            isReEditingPage = true;
             goToStep('capture');
             startCamera();
+        });
+
+        // Sesuaikan Sudut Manual: Buka kembali crop screen dengan sudut yang sudah terpasang
+        document.getElementById('camManualCropBtn').addEventListener('click', () => {
+            openManualCropForActivePage();
         });
 
         document.getElementById('camProceedSaveBtn').addEventListener('click', () => {
@@ -951,6 +990,7 @@ window.camScanner = (function() {
 
         pages = [];
         activePageIndex = 0;
+        isReEditingPage = false;
 
         // Reset metadata fields
         document.getElementById('camDocName').value = activeOptions.presetName;
@@ -990,10 +1030,19 @@ window.camScanner = (function() {
         if (currentStep === 'metadata') {
             goToStep('review');
         } else if (currentStep === 'review') {
-            goToStep('crop');
+            if (pages.length <= 1) {
+                goToStep('capture');
+                startCamera();
+            } else {
+                closeScanner();
+            }
         } else if (currentStep === 'crop') {
-            goToStep('capture');
-            startCamera();
+            if (pages.length > 0) {
+                goToStep('review');
+            } else {
+                goToStep('capture');
+                startCamera();
+            }
         } else {
             closeScanner();
         }
@@ -1008,7 +1057,7 @@ window.camScanner = (function() {
 
         const titleEl = document.getElementById('camStepTitle');
         if (step === 'capture') {
-            titleEl.textContent = pages.length > 0 ? `Ambil Halaman ${pages.length + 1}` : 'Pindai Dokumen';
+            titleEl.textContent = pages.length > 0 && !isReEditingPage ? `Ambil Halaman ${pages.length + 1}` : 'Pindai Dokumen';
         } else if (step === 'crop') {
             titleEl.textContent = 'Atur 4 Sudut Dokumen';
         } else if (step === 'review') {
@@ -1016,6 +1065,18 @@ window.camScanner = (function() {
         } else if (step === 'metadata') {
             titleEl.textContent = 'Simpan Berkas PDF';
         }
+    }
+
+    function showAutoNotice(msg) {
+        const el = document.getElementById('camAutoNotice');
+        if (!el) return;
+        el.textContent = msg;
+        el.style.display = 'block';
+        el.style.opacity = '1';
+        setTimeout(() => {
+            el.style.opacity = '0';
+            setTimeout(() => { el.style.display = 'none'; }, 300);
+        }, 2500);
     }
 
     // ── Camera Management ──
@@ -1094,37 +1155,48 @@ window.camScanner = (function() {
         const img = new Image();
         img.onload = function() {
             cropRotation = 0;
-            initCropScreen(img);
+            // Setup crop state & dimensions so display coordinates are established
+            setupCropScreenData(img);
+
+            // ── Auto Document Detection ──
+            const detectResult = detectDocumentQuad(img);
+
+            if (detectResult.success && detectResult.corners) {
+                // High confidence quadrilateral detected: set corners and auto-warp directly!
+                window.currentCorners = detectResult.corners;
+                renderCornerHandles();
+                applyCropAndPerspective();
+                showAutoNotice("✓ Dokumen terdeteksi otomatis");
+            } else {
+                // Fallback: Show manual crop screen with 5% inset handles
+                resetCropCorners();
+                goToStep('crop');
+                showAutoNotice("Silakan sesuaikan 4 sudut dokumen");
+            }
         };
         img.src = dataUrl;
     }
 
-    // ── Crop & 4 Corner Selection ──
-    function initCropScreen(imgElement) {
-        goToStep('crop');
-
+    // ── Setup Crop Screen Dimensions ──
+    function setupCropScreenData(imgElement) {
         cropImg.src = imgElement.src;
         cropImg.dataset.rawWidth = imgElement.naturalWidth || imgElement.width;
         cropImg.dataset.rawHeight = imgElement.naturalHeight || imgElement.height;
-
-        requestAnimationFrame(() => {
-            updateCropDimensions();
-            resetCropCorners();
-        });
+        updateCropDimensions();
     }
 
     function updateCropDimensions() {
         const vp = document.getElementById('camCropViewport');
         const img = cropImg;
-        const naturalW = parseInt(img.dataset.rawWidth);
-        const naturalH = parseInt(img.dataset.rawHeight);
+        const naturalW = parseInt(img.dataset.rawWidth) || 1200;
+        const naturalH = parseInt(img.dataset.rawHeight) || 1600;
 
         const isRotated = (cropRotation === 90 || cropRotation === 270);
         const effectiveW = isRotated ? naturalH : naturalW;
         const effectiveH = isRotated ? naturalW : naturalH;
 
-        const maxW = vp.clientWidth - 40;
-        const maxH = vp.clientHeight - 40;
+        const maxW = Math.max(280, (vp ? vp.clientWidth : 600) - 40);
+        const maxH = Math.max(380, (vp ? vp.clientHeight : 800) - 40);
 
         const scale = Math.min(maxW / effectiveW, maxH / effectiveH, 1);
         cropDisplayScale = scale;
@@ -1144,9 +1216,9 @@ window.camScanner = (function() {
     }
 
     function resetCropCorners() {
-        const w = cropImgRect.width;
-        const h = cropImgRect.height;
-        // Inset 5% from edges for easy dragging
+        const w = cropImgRect.width || 320;
+        const h = cropImgRect.height || 420;
+        // Inset 5% from edges
         const insetX = Math.round(w * 0.05);
         const insetY = Math.round(h * 0.05);
 
@@ -1241,12 +1313,212 @@ window.camScanner = (function() {
         );
     }
 
+    // ── Auto Document Detection Engine (Pure Canvas 2D) ──
+    function detectDocumentQuad(imgElement) {
+        try {
+            const rawW = imgElement.naturalWidth || imgElement.width;
+            const rawH = imgElement.naturalHeight || imgElement.height;
+            if (!rawW || !rawH) return { success: false };
+
+            // 1. Proportional processing dimensions (width ~360px)
+            const pw = 360;
+            const ph = Math.round(pw * (rawH / rawW));
+            if (pw < 50 || ph < 50) return { success: false };
+
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = pw;
+            offCanvas.height = ph;
+            const offCtx = offCanvas.getContext('2d');
+            offCtx.drawImage(imgElement, 0, 0, pw, ph);
+
+            const imgData = offCtx.getImageData(0, 0, pw, ph);
+            const data = imgData.data;
+
+            // 2. Luminance & Edge Gradient Map
+            const lum = new Float32Array(pw * ph);
+            let totalLum = 0;
+            for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+                const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                lum[j] = y;
+                totalLum += y;
+            }
+
+            const grad = new Float32Array(pw * ph);
+            let totalGrad = 0;
+            for (let y = 1; y < ph - 1; y++) {
+                for (let x = 1; x < pw - 1; x++) {
+                    const idx = y * pw + x;
+                    const gx = lum[idx + 1] - lum[idx - 1];
+                    const gy = lum[idx + pw] - lum[idx - pw];
+                    const g = Math.abs(gx) + Math.abs(gy);
+                    grad[idx] = g;
+                    totalGrad += g;
+                }
+            }
+            const avgGrad = totalGrad / (pw * ph);
+            const gradThreshold = Math.max(16, avgGrad * 1.5);
+
+            // 3. Radial Raycast from center outward in 36 directions to detect document contour
+            const cx = pw / 2;
+            const cy = ph / 2;
+            const numRays = 36;
+            const boundaryPoints = [];
+
+            for (let r = 0; r < numRays; r++) {
+                const angle = (r * 2 * Math.PI) / numRays;
+                const cosA = Math.cos(angle);
+                const sinA = Math.sin(angle);
+
+                // Ray limit to canvas borders
+                const maxR = Math.min(
+                    cosA > 0 ? (pw - 4 - cx) / cosA : (4 - cx) / cosA,
+                    sinA > 0 ? (ph - 4 - cy) / sinA : (4 - cy) / sinA
+                );
+
+                let bestPoint = null;
+                let maxEdgeVal = 0;
+
+                // Step outward from 12% to 98% radius
+                for (let dist = maxR * 0.12; dist < maxR * 0.98; dist += 2) {
+                    const px = Math.round(cx + cosA * dist);
+                    const py = Math.round(cy + sinA * dist);
+                    if (px < 2 || px >= pw - 2 || py < 2 || py >= ph - 2) break;
+
+                    const gVal = grad[py * pw + px];
+                    if (gVal > gradThreshold && gVal > maxEdgeVal) {
+                        maxEdgeVal = gVal;
+                        bestPoint = { x: px, y: py, edge: gVal };
+                    }
+                }
+
+                if (bestPoint) {
+                    boundaryPoints.push(bestPoint);
+                }
+            }
+
+            if (boundaryPoints.length < 14) {
+                return { success: false };
+            }
+
+            // 4. Determine 4 candidate corner points most consistent with document contours
+            let tl = null, tr = null, br = null, bl = null;
+            let minTL = Infinity, maxTR = -Infinity, maxBR = -Infinity, minBL = Infinity;
+
+            for (const pt of boundaryPoints) {
+                // Top-Left: min(x + y)
+                if (pt.x < cx * 1.15 && pt.y < cy * 1.15) {
+                    const v = pt.x + pt.y;
+                    if (v < minTL) { minTL = v; tl = pt; }
+                }
+                // Top-Right: max(x - y)
+                if (pt.x > cx * 0.85 && pt.y < cy * 1.15) {
+                    const v = pt.x - pt.y;
+                    if (v > maxTR) { maxTR = v; tr = pt; }
+                }
+                // Bottom-Right: max(x + y)
+                if (pt.x > cx * 0.85 && pt.y > cy * 0.85) {
+                    const v = pt.x + pt.y;
+                    if (v > maxBR) { maxBR = v; br = pt; }
+                }
+                // Bottom-Left: min(x - y)
+                if (pt.x < cx * 1.15 && pt.y > cy * 0.85) {
+                    const v = pt.x - pt.y;
+                    if (v < minBL) { minBL = v; bl = pt; }
+                }
+            }
+
+            if (!tl || !tr || !br || !bl) {
+                return { success: false };
+            }
+
+            // 5. Geometrical validation: Convexity check
+            const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+            const c0 = cross(tl, tr, br);
+            const c1 = cross(tr, br, bl);
+            const c2 = cross(br, bl, tl);
+            const c3 = cross(bl, tl, tr);
+
+            const isConvex = (c0 > 0 && c1 > 0 && c2 > 0 && c3 > 0) || (c0 < 0 && c1 < 0 && c2 < 0 && c3 < 0);
+            if (!isConvex) {
+                return { success: false };
+            }
+
+            // Area Ratio Check (Shoelace formula)
+            const quadArea = 0.5 * Math.abs(
+                (tl.x * tr.y + tr.x * br.y + br.x * bl.y + bl.x * tl.y) -
+                (tl.y * tr.x + tr.y * br.x + br.y * bl.x + bl.y * tl.x)
+            );
+            const totalArea = pw * ph;
+            const areaRatio = quadArea / totalArea;
+            if (areaRatio < 0.15 || areaRatio > 0.92) {
+                return { success: false };
+            }
+
+            // Aspect Ratio Check
+            const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+            const avgW = (dist(tl, tr) + dist(bl, br)) / 2;
+            const avgH = (dist(tl, bl) + dist(tr, br)) / 2;
+            const aspect = avgW / avgH;
+            if (aspect < 0.35 || aspect > 2.8) {
+                return { success: false };
+            }
+
+            // 6. Map to display coordinates (cropImgRect)
+            const scaleToDispX = cropImgRect.width / pw;
+            const scaleToDispY = cropImgRect.height / ph;
+
+            const corners = [
+                { x: Math.round(tl.x * scaleToDispX), y: Math.round(tl.y * scaleToDispY) },
+                { x: Math.round(tr.x * scaleToDispX), y: Math.round(tr.y * scaleToDispY) },
+                { x: Math.round(br.x * scaleToDispX), y: Math.round(br.y * scaleToDispY) },
+                { x: Math.round(bl.x * scaleToDispX), y: Math.round(bl.y * scaleToDispY) }
+            ];
+
+            return { success: true, corners: corners };
+        } catch (err) {
+            console.warn("Auto-detect exception:", err);
+            return { success: false };
+        }
+    }
+
+    // ── Manual Crop Re-adjustment for Active Page ──
+    function openManualCropForActivePage() {
+        if (!pages[activePageIndex]) return;
+        isReEditingPage = true;
+
+        const p = pages[activePageIndex];
+        if (p.sourceImgSrc) {
+            const img = new Image();
+            img.onload = function() {
+                cropImg.src = img.src;
+                cropRotation = p.rotation || 0;
+                updateCropDimensions();
+
+                if (p.corners && p.corners.length === 4) {
+                    window.currentCorners = [
+                        { x: p.corners[0].x, y: p.corners[0].y },
+                        { x: p.corners[1].x, y: p.corners[1].y },
+                        { x: p.corners[2].x, y: p.corners[2].y },
+                        { x: p.corners[3].x, y: p.corners[3].y }
+                    ];
+                } else {
+                    resetCropCorners();
+                }
+                renderCornerHandles();
+                goToStep('crop');
+            };
+            img.src = p.sourceImgSrc;
+        } else {
+            goToStep('crop');
+        }
+    }
+
     // ── Heckbert Projective Homography Perspective Correction ──
     function applyCropAndPerspective() {
         const rawW = cropImg.naturalWidth;
         const rawH = cropImg.naturalHeight;
-        const dispW = cropImgRect.width;
-        const dispH = cropImgRect.height;
+        const dispW = cropImgRect.width || 320;
+        const dispH = cropImgRect.height || 420;
 
         // Map corners to natural image coordinates
         const scaleX = rawW / dispW;
@@ -1359,17 +1631,27 @@ window.camScanner = (function() {
         }
         dstCtx.putImageData(dstData, 0, 0);
 
-        // Store as page
-        const newPage = {
-            id: Date.now(),
-            cleanCanvas: dstCanvas,
-            filter: 'bw',
-            displayCanvas: document.createElement('canvas')
-        };
-        applyFilterToPage(newPage);
-
-        pages.push(newPage);
-        activePageIndex = pages.length - 1;
+        // Store / update page
+        if (isReEditingPage && pages[activePageIndex]) {
+            pages[activePageIndex].cleanCanvas = dstCanvas;
+            pages[activePageIndex].corners = window.currentCorners.map(p => ({ x: p.x, y: p.y }));
+            pages[activePageIndex].rotation = cropRotation;
+            applyFilterToPage(pages[activePageIndex]);
+            isReEditingPage = false;
+        } else {
+            const newPage = {
+                id: Date.now(),
+                sourceImgSrc: cropImg.src,
+                cleanCanvas: dstCanvas,
+                corners: window.currentCorners.map(p => ({ x: p.x, y: p.y })),
+                rotation: cropRotation,
+                filter: 'bw',
+                displayCanvas: document.createElement('canvas')
+            };
+            applyFilterToPage(newPage);
+            pages.push(newPage);
+            activePageIndex = pages.length - 1;
+        }
 
         renderReviewScreen();
     }
@@ -1402,7 +1684,6 @@ window.camScanner = (function() {
             // Black & White Binarization: contrast stretch and threshold
             for (let i = 0; i < data.length; i += 4) {
                 const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                // Threshold with gentle midtone slope
                 const val = y > 135 ? 255 : (y < 85 ? 0 : (y - 85) * 5.1);
                 data[i] = val;
                 data[i + 1] = val;
