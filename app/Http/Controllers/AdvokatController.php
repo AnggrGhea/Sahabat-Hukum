@@ -156,6 +156,13 @@ class AdvokatController extends Controller
         }
         $cases = $query->orderBy('created_at', 'desc')->get();
 
+        $availableConsultations = Consultation::where('lawyer_id', $lawyer->id)
+            ->whereNotIn('status', ['Dibatalkan'])
+            ->whereDoesntHave('case')
+            ->with('client')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $activeId = $request->query('id', $cases->first()?->id);
         $case     = LegalCase::with([
             'client',
@@ -169,7 +176,7 @@ class AdvokatController extends Controller
             },
         ])->where('lawyer_id', $lawyer->id)->find($activeId);
 
-        return view('advokat.cases', compact('cases', 'case', 'filter'));
+        return view('advokat.cases', compact('cases', 'case', 'filter', 'availableConsultations'));
     }
 
     public function caseDetail($id)
@@ -189,7 +196,15 @@ class AdvokatController extends Controller
         $filter = 'Semua';
         $cases  = LegalCase::where('lawyer_id', $lawyer->id)
             ->with('client')->orderBy('created_at', 'desc')->get();
-        return view('advokat.cases', compact('cases', 'case', 'filter'));
+
+        $availableConsultations = Consultation::where('lawyer_id', $lawyer->id)
+            ->whereNotIn('status', ['Dibatalkan'])
+            ->whereDoesntHave('case')
+            ->with('client')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('advokat.cases', compact('cases', 'case', 'filter', 'availableConsultations'));
     }
 
     // ─── Manajemen Dokumen Perkara Advokat ────────────────────────────────────
@@ -284,6 +299,8 @@ class AdvokatController extends Controller
 
         $lawyer       = Auth::user();
         $consultation = Consultation::where('lawyer_id', $lawyer->id)
+            ->whereNotIn('status', ['Dibatalkan'])
+            ->whereDoesntHave('case')
             ->findOrFail($request->consultation_id);
 
         $case = LegalCase::create([
@@ -313,6 +330,16 @@ class AdvokatController extends Controller
             $conversation->update([
                 'case_id' => $case->id,
                 'title'   => 'Perkara: ' . $case->case_number . ' — ' . $case->title,
+            ]);
+        } elseif (!$conversation) {
+            \App\Models\Conversation::create([
+                'consultation_id' => $consultation->id,
+                'case_id'         => $case->id,
+                'client_id'       => $case->client_id,
+                'lawyer_id'       => $case->lawyer_id,
+                'title'           => 'Perkara: ' . $case->case_number . ' — ' . $case->title,
+                'status'          => 'active',
+                'last_message_at' => null,
             ]);
         }
 

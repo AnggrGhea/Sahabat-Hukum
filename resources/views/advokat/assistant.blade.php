@@ -76,36 +76,52 @@
                         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px 12px 12px 2px;padding:18px 22px;color:#1e293b;line-height:1.65;font-size:.875rem;max-width:760px;box-shadow:0 1px 3px rgba(0,0,0,0.03);white-space:pre-wrap;">{!! nl2br(e($msg['content'])) !!}</div>
                         
                         @if(!empty($msg['sources']))
-                        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                            <span style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Sumber Terverifikasi:</span>
+                        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #e2e8f0;">
+                            <div style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Rujukan / Sumber Hukum:</div>
+                            <div style="display:flex;flex-direction:column;gap:6px;">
                             @foreach($msg['sources'] as $src)
                                 @php
                                     $title = is_array($src) ? ($src['title'] ?? 'Sumber Hukum') : $src;
                                     $url = is_array($src) ? ($src['url'] ?? null) : null;
+                                    $institution = is_array($src) ? ($src['institution'] ?? null) : null;
                                     $status = is_array($src) ? ($src['status'] ?? null) : null;
-                                    $pdf = is_array($src) ? ($src['pdf_url'] ?? null) : null;
+
+                                    $badgeBg = '#f1f5f9';
+                                    $badgeColor = '#334155';
+                                    $badgeBorder = '#cbd5e1';
+
+                                    if ($status === 'Terverifikasi Resmi') {
+                                        $badgeBg = '#ecfdf5';
+                                        $badgeColor = '#065f46';
+                                        $badgeBorder = '#a7f3d0';
+                                    } elseif ($status === 'Discovery / Perlu Verifikasi') {
+                                        $badgeBg = '#fffbeb';
+                                        $badgeColor = '#92400e';
+                                        $badgeBorder = '#fde68a';
+                                    } elseif ($status === 'Sumber Pemerintah Pendukung') {
+                                        $badgeBg = '#eff6ff';
+                                        $badgeColor = '#1e40af';
+                                        $badgeBorder = '#bfdbfe';
+                                    }
                                 @endphp
-                                @if($url)
-                                <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
-                                   style="display:inline-flex;align-items:center;gap:5px;font-size:.75rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:6px;padding:4px 10px;font-weight:600;text-decoration:none;transition:all .15s;">
-                                    <i data-lucide="external-link" style="width:12px;height:12px;"></i>
-                                    {{ $title }}
-                                    @if($status)
-                                    <span style="font-size:.65rem;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;margin-left:2px;">{{ $status }}</span>
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f8fafc;border:1px solid {{ $badgeBorder }};border-radius:8px;padding:6px 12px;font-size:.75rem;">
+                                    <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+                                        @if($status)
+                                        <span style="font-size:.65rem;background:{{ $badgeBg }};color:{{ $badgeColor }};border:1px solid {{ $badgeBorder }};padding:2px 6px;border-radius:4px;font-weight:700;flex-shrink:0;">{{ $status }}</span>
+                                        @endif
+                                        <span style="font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ $title }}">{{ $title }}</span>
+                                        @if($institution)
+                                        <span style="font-size:.68rem;color:#64748b;flex-shrink:0;">({{ $institution }})</span>
+                                        @endif
+                                    </div>
+                                    @if($url)
+                                    <a href="{{ $url }}" target="_blank" rel="noopener noreferrer" style="font-size:.72rem;background:#0b1a30;color:#fff;border-radius:4px;padding:3px 8px;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;flex-shrink:0;">
+                                        <i data-lucide="external-link" style="width:11px;height:11px;"></i> Lihat Sumber
+                                    </a>
                                     @endif
-                                </a>
-                                @else
-                                <span style="font-size:.75rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;padding:4px 10px;font-weight:600;">
-                                    {{ $title }}
-                                </span>
-                                @endif
-                                @if($pdf)
-                                <a href="{{ $pdf }}" target="_blank" rel="noopener noreferrer" title="Unduh Berkas PDF Resmi JDIH"
-                                   style="display:inline-flex;align-items:center;gap:3px;font-size:.72rem;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:4px 8px;font-weight:600;text-decoration:none;">
-                                    <i data-lucide="file-text" style="width:12px;height:12px;"></i> PDF
-                                </a>
-                                @endif
+                                </div>
                             @endforeach
+                            </div>
                         </div>
                         @endif
                     </div>
@@ -256,28 +272,58 @@ document.addEventListener('DOMContentLoaded', function() {
         let sourcesHtml = '';
         if (sources && sources.length > 0) {
             sourcesHtml = `
-                <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <span style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Sumber Terverifikasi:</span>
-                    ${sources.map(s => {
-                        const title = escapeHtml(s.title || s);
-                        const url = s.url || null;
-                        const status = s.status || null;
-                        const pdf = s.pdf_url || null;
+                <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #e2e8f0;">
+                    <div style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Rujukan / Sumber Hukum:</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        ${sources.map(s => {
+                            const title = escapeHtml(s.title || (typeof s === 'string' ? s : 'Sumber Hukum'));
+                            const url = s.url || null;
+                            const institution = s.institution ? escapeHtml(s.institution) : '';
+                            const status = s.status || null;
 
-                        let linkHtml = url
-                            ? `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;font-size:.75rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:6px;padding:4px 10px;font-weight:600;text-decoration:none;">
-                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                                 ${title}
-                                 ${status ? `<span style="font-size:.65rem;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;margin-left:2px;">${escapeHtml(status)}</span>` : ''}
-                               </a>`
-                            : `<span style="font-size:.75rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;padding:4px 10px;font-weight:600;">${title}</span>`;
+                            let badgeBg = '#f1f5f9';
+                            let badgeColor = '#334155';
+                            let badgeBorder = '#cbd5e1';
 
-                        let pdfHtml = pdf
-                            ? `<a href="${pdf}" target="_blank" rel="noopener noreferrer" title="Unduh Berkas PDF Resmi JDIH" style="display:inline-flex;align-items:center;gap:3px;font-size:.72rem;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:4px 8px;font-weight:600;text-decoration:none;">PDF</a>`
-                            : '';
+                            if (status === 'Terverifikasi Resmi') {
+                                badgeBg = '#ecfdf5';
+                                badgeColor = '#065f46';
+                                badgeBorder = '#a7f3d0';
+                            } else if (status === 'Discovery / Perlu Verifikasi') {
+                                badgeBg = '#fffbeb';
+                                badgeColor = '#92400e';
+                                badgeBorder = '#fde68a';
+                            } else if (status === 'Sumber Pemerintah Pendukung') {
+                                badgeBg = '#eff6ff';
+                                badgeColor = '#1e40af';
+                                badgeBorder = '#bfdbfe';
+                            }
 
-                        return linkHtml + pdfHtml;
-                    }).join('')}
+                            const statusHtml = status
+                                ? `<span style="font-size:.65rem;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeBorder};padding:2px 6px;border-radius:4px;font-weight:700;flex-shrink:0;">${escapeHtml(status)}</span>`
+                                : '';
+
+                            const instHtml = institution ? `<span style="font-size:.68rem;color:#64748b;flex-shrink:0;">(${institution})</span>` : '';
+
+                            const actionBtn = url
+                                ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="font-size:.72rem;background:#0b1a30;color:#fff;border-radius:4px;padding:3px 8px;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;flex-shrink:0;">
+                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                     Lihat Sumber
+                                   </a>`
+                                : '';
+
+                            return `
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f8fafc;border:1px solid ${badgeBorder};border-radius:8px;padding:6px 12px;font-size:.75rem;">
+                                    <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+                                        ${statusHtml}
+                                        <span style="font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${title}">${title}</span>
+                                        ${instHtml}
+                                    </div>
+                                    ${actionBtn}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
             `;
         }

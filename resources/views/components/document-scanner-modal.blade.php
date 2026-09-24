@@ -1,11 +1,13 @@
 {{-- ═════════════════════════════════════════════════════════════════════════ --}}
-{{-- COMPONENT: Document Scanner Modal ala CamScanner (Klien & Advokat)      --}}
-{{-- Upgrade: Auto Document Detection, Auto-Crop 4 Sudut & Perspective Warp   --}}
+{{-- COMPONENT: Document Scanner Modal Profesional ala CamScanner             --}}
+{{-- Digunakan bersama oleh: KLIEN & ADVOKAT                                    --}}
+{{-- Fitur: Live Document Detection, Anti-Mirror, No Auto-Capture,              --}}
+{{--        Manual Shutter, Perspective Warp, Magic Color, Satu/Multi-Halaman   --}}
 {{-- ═════════════════════════════════════════════════════════════════════════ --}}
 <div id="camScannerModal" class="cam-scanner-overlay" style="display:none;" aria-hidden="true">
     <div class="cam-scanner-container">
 
-        {{-- Toast / Auto-detection Notification Banner --}}
+        {{-- Toast Notification Banner --}}
         <div id="camAutoNotice" class="cam-auto-notice" style="display:none;"></div>
 
         {{-- ── TOP NAVIGATION BAR ── --}}
@@ -25,18 +27,39 @@
             </button>
         </div>
 
-        {{-- ── SCREEN 1: CAMERA CAPTURE ── --}}
+        {{-- ── SCREEN 1: CAMERA CAPTURE (LIVE DETECTION) ── --}}
         <div class="cam-screen" id="camScreenCapture" style="display:flex;">
-            <div class="cam-video-viewport">
+            <div class="cam-video-viewport" id="camVideoViewport">
+                {{-- Live Camera Video: Anti-Mirror (Normal Text Orientation) --}}
                 <video id="camVideo" playsinline autoplay muted></video>
-                <div class="cam-document-guide">
-                    <div class="cam-guide-box">
-                        <span class="cam-guide-corner tl"></span>
-                        <span class="cam-guide-corner tr"></span>
-                        <span class="cam-guide-corner bl"></span>
-                        <span class="cam-guide-corner br"></span>
-                        <div class="cam-guide-hint">Posisikan dokumen di dalam area kotak</div>
+
+                {{-- Real-Time Dynamic Polygon Overlay (Tracking 4 Sudut Dokumen) --}}
+                <canvas id="camLiveCanvas" class="cam-live-canvas"></canvas>
+
+                {{-- Shutter Visual Flash Effect --}}
+                <div id="camFlashOverlay" class="cam-flash-overlay"></div>
+
+                {{-- Live Detection Status Pill --}}
+                <div class="cam-status-pill-wrap">
+                    <div id="camLiveStatus" class="cam-status-pill">
+                        <span class="cam-status-dot"></span>
+                        <span id="camStatusText">Posisikan dokumen di dalam kamera</span>
                     </div>
+                </div>
+
+                {{-- Floating Multi-Page Status Bar (Hanya tampil saat mode Beberapa Halaman & sudah ada halaman) --}}
+                <div id="camMultiFloatingBar" class="cam-multi-floating-bar" style="display:none;">
+                    <div class="cam-multi-badge">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                            <line x1="8" y1="7" x2="16" y2="7"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        <span id="camMultiCount">0 Halaman Siap</span>
+                    </div>
+                    <button type="button" class="cam-btn-finish" id="camMultiFinishBtn">
+                        Selesai Scan &rarr;
+                    </button>
                 </div>
             </div>
 
@@ -49,21 +72,30 @@
             </div>
             <input type="file" id="camFallbackInput" accept="image/*" style="display:none;">
 
+            {{-- Mode Switch (Satu Halaman vs Beberapa Halaman) --}}
+            <div class="cam-mode-container">
+                <div class="cam-mode-switch">
+                    <button type="button" class="cam-mode-tab active" id="camModeSingleBtn" data-mode="single">Satu Halaman</button>
+                    <button type="button" class="cam-mode-tab" id="camModeMultiBtn" data-mode="multi">Beberapa Halaman</button>
+                </div>
+            </div>
+
             {{-- Bottom Shutter Bar --}}
             <div class="cam-bottom-bar">
-                <button type="button" class="cam-tool-btn" id="camGalleryBtn" title="Pilih Foto dari Perangkat">
+                <button type="button" class="cam-tool-btn" id="camGalleryBtn" title="Pilih Foto dari Galeri">
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                         <circle cx="8.5" cy="8.5" r="1.5"/>
                         <polyline points="21 15 16 10 5 21"/>
                     </svg>
-                    <span>Galeri</span>
+                    <span>Impor Foto</span>
                 </button>
 
                 <div class="cam-shutter-wrapper">
-                    <button type="button" class="cam-shutter-btn" id="camShutterBtn" title="Ambil Foto Dokumen">
+                    <button type="button" class="cam-shutter-btn" id="camShutterBtn" title="Tekan untuk Scan">
                         <span class="cam-shutter-inner"></span>
                     </button>
+                    <span class="cam-shutter-tag">Scan</span>
                 </div>
 
                 <button type="button" class="cam-tool-btn" id="camSwitchBtn" title="Ganti Kamera">
@@ -76,10 +108,9 @@
             </div>
         </div>
 
-        {{-- ── SCREEN 2: CROP 4 SUDUT & PERSPECTIVE CORRECTION ── --}}
+        {{-- ── SCREEN 2: CROP 4 SUDUT & MANUAL ADJUSTMENT ── --}}
         <div class="cam-screen" id="camScreenCrop" style="display:none;">
             <div class="cam-crop-viewport" id="camCropViewport">
-                <canvas id="camSourceCanvas" style="display:none;"></canvas>
                 <div class="cam-crop-stage" id="camCropStage">
                     <img id="camCropImage" alt="Preview Dokumen">
                     <svg id="camCropSvg" class="cam-crop-svg">
@@ -123,18 +154,21 @@
             </div>
         </div>
 
-        {{-- ── SCREEN 3: FILTER & MULTI-PAGE REVIEW ── --}}
+        {{-- ── SCREEN 3: FILTER ENHANCEMENT & MULTI-PAGE REVIEW ── --}}
         <div class="cam-screen" id="camScreenReview" style="display:none;">
-            {{-- Filter Chips Bar --}}
+            {{-- Filter Enhancement Chips Bar --}}
             <div class="cam-filter-bar">
-                <button type="button" class="cam-filter-chip active" data-filter="bw">
+                <button type="button" class="cam-filter-chip active" data-filter="magic">
+                    <span class="chip-sparkle">✦</span> Dokumen Jernih
+                </button>
+                <button type="button" class="cam-filter-chip" data-filter="bw">
                     Hitam & Putih
                 </button>
                 <button type="button" class="cam-filter-chip" data-filter="grayscale">
                     Grayscale
                 </button>
                 <button type="button" class="cam-filter-chip" data-filter="original">
-                    Asli
+                    Foto Asli
                 </button>
             </div>
 
@@ -157,7 +191,7 @@
                 </button>
             </div>
 
-            {{-- Review Action Bar (Termasuk Sesuaikan Sudut Manual) --}}
+            {{-- Review Action Bar --}}
             <div class="cam-action-bar">
                 <button type="button" class="cam-btn-outline" id="camRetakePageBtn">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -186,7 +220,7 @@
             <div class="cam-meta-wrapper">
                 <div class="cam-meta-card">
                     <h3 class="cam-meta-title">Informasi Dokumen Perkara</h3>
-                    <p class="cam-meta-desc">Dokumen telah dikonversi ke format PDF standar. Silakan lengkapi nama dan jenis dokumen sebelum disimpan.</p>
+                    <p class="cam-meta-desc">Dokumen telah dikonversi ke format PDF standar A4. Silakan lengkapi nama dan jenis dokumen sebelum disimpan.</p>
 
                     <form id="camMetaForm" onsubmit="camScanner.submitFinalDocument(event)">
                         {{-- Select Case (if not preselected) --}}
@@ -229,7 +263,7 @@
                             </div>
                         </div>
 
-                        <div class="cam-action-bar" style="margin-top:20px;padding:0;">
+                        <div class="cam-action-bar" style="margin-top:20px;padding:0;background:transparent;border:none;">
                             <button type="button" class="cam-btn-outline" id="camBackToReviewBtn">
                                 Kembali ke Editor
                             </button>
@@ -247,7 +281,7 @@
 </div>
 
 {{-- ═════════════════════════════════════════════════════════════════════════ --}}
-{{-- STYLES: CamScanner Clean Dark Theme                                      --}}
+{{-- STYLES: CamScanner Clean Dark Theme + Professional Overlays              --}}
 {{-- ═════════════════════════════════════════════════════════════════════════ --}}
 <style>
 .cam-scanner-overlay {
@@ -274,21 +308,21 @@
 
 .cam-auto-notice {
     position: absolute;
-    top: 60px;
+    top: 64px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.92);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(56, 189, 248, 0.45);
-    color: #38bdf8;
-    font-size: 0.75rem;
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 242, 254, 0.45);
+    color: #00f2fe;
+    font-size: 0.76rem;
     font-weight: 600;
-    padding: 7px 16px;
+    padding: 7px 18px;
     border-radius: 20px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
     z-index: 1000;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.25s ease;
     white-space: nowrap;
 }
 
@@ -334,7 +368,7 @@
     overflow: hidden;
 }
 
-/* ── Screen 1: Camera ── */
+/* ── Screen 1: Camera Viewport (Anti-Mirror) ── */
 .cam-video-viewport {
     flex: 1;
     position: relative;
@@ -345,56 +379,131 @@
     overflow: hidden;
 }
 
+/* Camera Video: strictly anti-mirror by default for rear camera */
 #camVideo {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transform: none !important;
+    -webkit-transform: none !important;
 }
 
-.cam-document-guide {
+/* Live Dynamic Polygon Canvas Overlay */
+.cam-live-canvas {
     position: absolute;
     inset: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
+    z-index: 5;
+}
+
+/* Shutter Flash Animation */
+.cam-flash-overlay {
+    position: absolute;
+    inset: 0;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 25;
+    transition: opacity 0.18s ease-out;
+}
+.cam-flash-overlay.active {
+    opacity: 0.85;
+    transition: none;
+}
+
+/* Live Real-time Status Badge */
+.cam-status-pill-wrap {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    pointer-events: none;
+}
+.cam-status-pill {
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #e2e8f0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: all 0.22s ease;
+    white-space: nowrap;
+}
+.cam-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #94a3b8;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+/* Status variants */
+.cam-status-pill.detected {
+    border-color: rgba(0, 242, 254, 0.7);
+    color: #00f2fe;
+}
+.cam-status-pill.detected .cam-status-dot {
+    background: #00f2fe;
+    box-shadow: 0 0 8px #00f2fe;
+}
+.cam-status-pill.ready {
+    border-color: rgba(16, 185, 129, 0.8);
+    color: #34d399;
+}
+.cam-status-pill.ready .cam-status-dot {
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
+}
+
+/* Floating Multi-page Bar */
+.cam-multi-floating-bar {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 24px;
-}
-
-.cam-guide-box {
-    width: 100%;
-    max-width: 480px;
-    height: 80%;
-    border: 2px dashed rgba(255, 255, 255, 0.4);
-    border-radius: 12px;
-    position: relative;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding-bottom: 16px;
-}
-
-.cam-guide-corner {
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    border-color: #38bdf8;
-    border-style: solid;
-}
-.cam-guide-corner.tl { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-top-left-radius: 10px; }
-.cam-guide-corner.tr { top: -2px; right: -2px; border-width: 4px 4px 0 0; border-top-right-radius: 10px; }
-.cam-guide-corner.bl { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; border-bottom-left-radius: 10px; }
-.cam-guide-corner.br { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-bottom-right-radius: 10px; }
-
-.cam-guide-hint {
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(4px);
-    color: #cbd5e1;
-    font-size: 0.75rem;
+    gap: 12px;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 242, 254, 0.4);
     padding: 6px 14px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+}
+.cam-multi-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.76rem;
+    color: #bae6fd;
+    font-weight: 600;
+}
+.cam-btn-finish {
+    background: #10b981;
+    border: none;
+    color: #fff;
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+.cam-btn-finish:hover {
+    background: #059669;
+    transform: scale(1.03);
 }
 
 .cam-fallback-notice {
@@ -407,8 +516,44 @@
     font-size: 0.85rem;
 }
 
+/* Mode Switch (Satu Halaman vs Beberapa Halaman) */
+.cam-mode-container {
+    height: 42px;
+    background: #090d16;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    border-top: 1px solid #131d2e;
+}
+.cam-mode-switch {
+    display: inline-flex;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 24px;
+    padding: 3px;
+    gap: 3px;
+}
+.cam-mode-tab {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.cam-mode-tab.active {
+    background: #0284c7;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+}
+
+/* Bottom Shutter Bar */
 .cam-bottom-bar {
-    height: 90px;
+    height: 94px;
     background: #090d16;
     display: flex;
     align-items: center;
@@ -429,6 +574,7 @@
     font-size: 0.7rem;
     padding: 8px 12px;
     border-radius: 8px;
+    min-width: 60px;
 }
 .cam-tool-btn:hover {
     color: #f1f5f9;
@@ -436,7 +582,17 @@
 }
 
 .cam-shutter-wrapper {
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+.cam-shutter-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #00f2fe;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
 .cam-shutter-btn {
@@ -444,13 +600,17 @@
     height: 68px;
     border-radius: 50%;
     background: transparent;
-    border: 4px solid #fff;
+    border: 4px solid #00f2fe;
+    box-shadow: 0 0 14px rgba(0, 242, 254, 0.35);
     padding: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.1s;
+    transition: transform 0.1s, box-shadow 0.15s;
+}
+.cam-shutter-btn:hover {
+    box-shadow: 0 0 22px rgba(0, 242, 254, 0.65);
 }
 .cam-shutter-btn:active {
     transform: scale(0.92);
@@ -496,9 +656,9 @@
 }
 
 .cam-crop-polygon {
-    fill: rgba(56, 189, 248, 0.15);
-    stroke: #38bdf8;
-    stroke-width: 2;
+    fill: rgba(0, 242, 254, 0.15);
+    stroke: #00f2fe;
+    stroke-width: 2.5;
     stroke-dasharray: 4 2;
 }
 
@@ -507,9 +667,9 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: #38bdf8;
+    background: #00f2fe;
     border: 3px solid #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
     transform: translate(-50%, -50%);
     cursor: grab;
     z-index: 50;
@@ -526,8 +686,8 @@
     width: 110px;
     height: 110px;
     border-radius: 50%;
-    border: 3px solid #38bdf8;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    border: 3px solid #00f2fe;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.65);
     overflow: hidden;
     pointer-events: none;
     z-index: 100;
@@ -548,45 +708,59 @@
 .cam-loupe-crosshair::before {
     content: '';
     position: absolute;
-    width: 16px;
+    width: 14px;
     height: 2px;
-    background: #ef4444;
+    background: #00f2fe;
 }
 .cam-loupe-crosshair::after {
     content: '';
     position: absolute;
-    height: 16px;
     width: 2px;
-    background: #ef4444;
+    height: 14px;
+    background: #00f2fe;
 }
 
-/* ── Screen 3: Review & Multi-page ── */
+/* ── Screen 3: Filter & Multi-Page Review ── */
 .cam-filter-bar {
     height: 48px;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: #0f172a;
-    border-bottom: 1px solid #1e293b;
     padding: 0 12px;
+    overflow-x: auto;
 }
 
 .cam-filter-chip {
-    background: #1e293b;
+    padding: 5px 14px;
+    border-radius: 18px;
     border: 1px solid #334155;
+    background: transparent;
     color: #94a3b8;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
+    font-weight: 600;
     cursor: pointer;
-    font-weight: 500;
     transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.cam-filter-chip:hover {
+    border-color: #64748b;
+    color: #e2e8f0;
 }
 .cam-filter-chip.active {
     background: #0284c7;
+    border-color: #0284c7;
     color: #fff;
-    border-color: #38bdf8;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+}
+.cam-filter-chip .chip-sparkle {
+    color: #facc15;
+    font-size: 0.8rem;
 }
 
 .cam-review-viewport {
@@ -595,70 +769,72 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 14px;
+    padding: 16px;
     overflow: hidden;
 }
 
 #camProcessedCanvas {
     max-width: 100%;
     max-height: 100%;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
     border-radius: 4px;
-    object-fit: contain;
+    background: #fff;
 }
 
 .cam-pages-strip {
-    height: 96px;
-    background: #090d16;
+    height: 94px;
+    background: #0f172a;
     border-top: 1px solid #1e293b;
     display: flex;
     align-items: center;
     padding: 8px 16px;
     gap: 12px;
-    overflow-x: auto;
 }
 
 .cam-pages-list {
     display: flex;
-    gap: 10px;
     align-items: center;
+    gap: 10px;
+    overflow-x: auto;
+    flex: 1;
+    height: 100%;
+    padding: 2px 0;
 }
 
 .cam-page-thumb-card {
-    width: 60px;
-    height: 76px;
+    width: 54px;
+    height: 74px;
     border-radius: 6px;
-    background: #1e293b;
     border: 2px solid #334155;
+    background: #1e293b;
     position: relative;
     cursor: pointer;
-    overflow: hidden;
     flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.15s;
 }
 .cam-page-thumb-card.active {
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4);
+    border-color: #00f2fe;
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
 }
-
 .cam-page-thumb-card img {
     width: 100%;
-    height: 54px;
+    height: 100%;
     object-fit: cover;
 }
-
 .cam-page-num {
-    height: 18px;
-    background: rgba(15, 23, 42, 0.9);
-    font-size: 0.65rem;
-    color: #cbd5e1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    background: rgba(15, 23, 42, 0.85);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-align: center;
+    border-radius: 3px;
+    padding: 1px 0;
 }
-
 .cam-page-del-btn {
     position: absolute;
     top: 2px;
@@ -666,7 +842,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: rgba(239, 68, 68, 0.9);
+    background: #ef4444;
     color: #fff;
     border: none;
     font-size: 10px;
@@ -679,7 +855,7 @@
 
 .cam-add-page-btn {
     width: 60px;
-    height: 76px;
+    height: 74px;
     border-radius: 6px;
     border: 2px dashed #475569;
     background: rgba(30, 41, 59, 0.4);
@@ -695,8 +871,8 @@
     transition: all 0.15s;
 }
 .cam-add-page-btn:hover {
-    border-color: #38bdf8;
-    color: #38bdf8;
+    border-color: #00f2fe;
+    color: #00f2fe;
 }
 
 /* ── Screen 4: Metadata Card ── */
@@ -761,12 +937,12 @@
     box-sizing: border-box;
 }
 .cam-form-input:focus {
-    border-color: #38bdf8;
+    border-color: #00f2fe;
 }
 
 .cam-doc-summary-badge {
-    background: rgba(56, 189, 248, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.25);
+    background: rgba(0, 242, 254, 0.08);
+    border: 1px solid rgba(0, 242, 254, 0.25);
     color: #bae6fd;
     padding: 10px 14px;
     border-radius: 8px;
@@ -843,7 +1019,7 @@
 </style>
 
 {{-- ═════════════════════════════════════════════════════════════════════════ --}}
-{{-- SCRIPT: CamScanner Controller & Heckbert Perspective Correction Engine     --}}
+{{-- SCRIPT: CamScanner Controller & Live Computer Vision Engine               --}}
 {{-- ═════════════════════════════════════════════════════════════════════════ --}}
 <script>
 window.camScanner = (function() {
@@ -858,8 +1034,9 @@ window.camScanner = (function() {
     };
 
     let stream = null;
-    let facingMode = 'environment';
-    let currentStep = 'capture'; // 'capture', 'crop', 'review', 'metadata'
+    let facingMode = 'environment'; // Kamera belakang default
+    let currentStep = 'capture';     // 'capture', 'crop', 'review', 'metadata'
+    let scanMode = 'single';         // 'single' (Satu Halaman) | 'multi' (Beberapa Halaman)
 
     let pages = []; // [{ id, sourceImgSrc, cleanCanvas, corners, rotation, filter, displayCanvas }]
     let activePageIndex = 0;
@@ -870,7 +1047,18 @@ window.camScanner = (function() {
     let activeCornerIndex = -1;
     let cropImgRect = { x: 0, y: 0, width: 0, height: 0 };
     let cropDisplayScale = 1;
-    let cropRotation = 0; // 0, 90, 180, 270
+    let cropRotation = 0;
+
+    // ── Live Document Detection Engine State ──
+    let isLiveDetecting = false;
+    let liveDetectCanvas = null;
+    let liveDetectCtx = null;
+    let liveOverlayCanvas = null;
+    let liveOverlayCtx = null;
+    let smoothedLiveCorners = null; // [{x, y}] in normalized [0..1] coordinates
+    let liveStabilityScore = 0;
+    let lastDetectTimestamp = 0;
+    let lastCornerSnapshot = null;
 
     // DOM Elements
     let modal, video, shutterBtn, switchBtn, fallbackNotice, fallbackInput;
@@ -887,6 +1075,17 @@ window.camScanner = (function() {
         switchBtn      = document.getElementById('camSwitchBtn');
         fallbackNotice = document.getElementById('camFallbackNotice');
         fallbackInput  = document.getElementById('camFallbackInput');
+
+        liveOverlayCanvas = document.getElementById('camLiveCanvas');
+        if (liveOverlayCanvas) {
+            liveOverlayCtx = liveOverlayCanvas.getContext('2d');
+        }
+
+        // Lightweight offscreen canvas for live frame CV processing
+        liveDetectCanvas = document.createElement('canvas');
+        liveDetectCanvas.width = 320;
+        liveDetectCanvas.height = 240;
+        liveDetectCtx = liveDetectCanvas.getContext('2d', { willReadFrequently: true });
 
         screenCapture  = document.getElementById('camScreenCapture');
         screenCrop     = document.getElementById('camScreenCrop');
@@ -919,7 +1118,26 @@ window.camScanner = (function() {
         document.getElementById('camCloseBtn').addEventListener('click', closeScanner);
         document.getElementById('camBackBtn').addEventListener('click', handleBackStep);
 
-        // Camera controls
+        // Mode switch tabs
+        const singleBtn = document.getElementById('camModeSingleBtn');
+        const multiBtn  = document.getElementById('camModeMultiBtn');
+        if (singleBtn && multiBtn) {
+            singleBtn.addEventListener('click', () => setScanMode('single'));
+            multiBtn.addEventListener('click', () => setScanMode('multi'));
+        }
+
+        // Multi-page finish button
+        const multiFinishBtn = document.getElementById('camMultiFinishBtn');
+        if (multiFinishBtn) {
+            multiFinishBtn.addEventListener('click', () => {
+                if (pages.length > 0) {
+                    stopCamera();
+                    renderReviewScreen();
+                }
+            });
+        }
+
+        // Camera shutter and gallery controls
         shutterBtn.addEventListener('click', capturePhoto);
         switchBtn.addEventListener('click', switchCamera);
         document.getElementById('camGalleryBtn').addEventListener('click', () => fallbackInput.click());
@@ -940,7 +1158,7 @@ window.camScanner = (function() {
         window.addEventListener('mouseup', endDrag);
         window.addEventListener('touchend', endDrag);
 
-        // Review controls
+        // Review filter controls
         filterChips.forEach(chip => {
             chip.addEventListener('click', () => {
                 filterChips.forEach(c => c.classList.remove('active'));
@@ -961,7 +1179,7 @@ window.camScanner = (function() {
             startCamera();
         });
 
-        // Sesuaikan Sudut Manual: Buka kembali crop screen dengan sudut yang sudah terpasang
+        // Sesuaikan Sudut Manual: Buka kembali crop screen
         document.getElementById('camManualCropBtn').addEventListener('click', () => {
             openManualCropForActivePage();
         });
@@ -973,6 +1191,29 @@ window.camScanner = (function() {
         document.getElementById('camBackToReviewBtn').addEventListener('click', () => {
             goToStep('review');
         });
+    }
+
+    function setScanMode(mode) {
+        scanMode = mode;
+        const singleBtn = document.getElementById('camModeSingleBtn');
+        const multiBtn  = document.getElementById('camModeMultiBtn');
+        if (singleBtn) singleBtn.classList.toggle('active', mode === 'single');
+        if (multiBtn)  multiBtn.classList.toggle('active', mode === 'multi');
+
+        updateMultiFloatingBar();
+    }
+
+    function updateMultiFloatingBar() {
+        const bar = document.getElementById('camMultiFloatingBar');
+        const countEl = document.getElementById('camMultiCount');
+        if (!bar || !countEl) return;
+
+        if (scanMode === 'multi' && pages.length > 0) {
+            countEl.textContent = `${pages.length} Halaman Siap`;
+            bar.style.display = 'flex';
+        } else {
+            bar.style.display = 'none';
+        }
     }
 
     // ── Public Entry Point ──
@@ -991,6 +1232,7 @@ window.camScanner = (function() {
         pages = [];
         activePageIndex = 0;
         isReEditingPage = false;
+        setScanMode('single');
 
         // Reset metadata fields
         document.getElementById('camDocName').value = activeOptions.presetName;
@@ -1057,7 +1299,10 @@ window.camScanner = (function() {
 
         const titleEl = document.getElementById('camStepTitle');
         if (step === 'capture') {
-            titleEl.textContent = pages.length > 0 && !isReEditingPage ? `Ambil Halaman ${pages.length + 1}` : 'Pindai Dokumen';
+            titleEl.textContent = pages.length > 0 && !isReEditingPage
+                ? `Pindai Halaman ${pages.length + 1}`
+                : 'Pindai Dokumen';
+            updateMultiFloatingBar();
         } else if (step === 'crop') {
             titleEl.textContent = 'Atur 4 Sudut Dokumen';
         } else if (step === 'review') {
@@ -1075,11 +1320,11 @@ window.camScanner = (function() {
         el.style.opacity = '1';
         setTimeout(() => {
             el.style.opacity = '0';
-            setTimeout(() => { el.style.display = 'none'; }, 300);
-        }, 2500);
+            setTimeout(() => { el.style.display = 'none'; }, 250);
+        }, 2200);
     }
 
-    // ── Camera Management ──
+    // ── Camera Management & Anti-Mirror Enforcement ──
     async function startCamera() {
         stopCamera();
         fallbackNotice.style.display = 'none';
@@ -1090,24 +1335,48 @@ window.camScanner = (function() {
         }
 
         try {
+            // Prioritize back camera (environment) with HD ideal resolution
             const constraints = {
                 video: {
-                    facingMode: facingMode,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    facingMode: facingMode ? { ideal: facingMode } : { ideal: 'environment' },
+                    width: { ideal: 1920, min: 1280 },
+                    height: { ideal: 1080, min: 720 }
                 },
                 audio: false
             };
+
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = stream;
-            video.play();
+
+            // Enforce Anti-Mirror: rear camera must be normal; mirror only if front camera
+            if (facingMode === 'user') {
+                video.style.transform = 'scaleX(-1)';
+            } else {
+                video.style.transform = 'none';
+            }
+
+            await video.play();
+
+            // Start Live Real-Time Detection Loop
+            startLiveDetection();
         } catch (err) {
-            console.warn("Kamera tidak dapat diakses, beralih ke fallback:", err);
-            showCameraFallback();
+            console.warn("Kamera belakang tidak dapat diakses, mencoba kamera alternatif:", err);
+            // Fallback: try any available camera without facingMode constraint
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                video.srcObject = stream;
+                video.style.transform = 'none';
+                await video.play();
+                startLiveDetection();
+            } catch (errFallback) {
+                console.warn("Kamera benar-benar tidak dapat diakses:", errFallback);
+                showCameraFallback();
+            }
         }
     }
 
     function stopCamera() {
+        stopLiveDetection();
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
             stream = null;
@@ -1123,52 +1392,434 @@ window.camScanner = (function() {
         fallbackNotice.style.display = 'block';
     }
 
-    function handleFileSelected(e) {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            loadCapturedImage(evt.target.result);
-        };
-        reader.readAsDataURL(file);
-        fallbackInput.value = ''; // Reset
+    // ── Live Document Detection Engine (Throttled ~10-12 FPS) ──
+    function startLiveDetection() {
+        isLiveDetecting = true;
+        smoothedLiveCorners = null;
+        liveStabilityScore = 0;
+        lastCornerSnapshot = null;
+        updateLiveStatusUI('searching');
+        requestAnimationFrame(processLiveFrame);
     }
 
+    function stopLiveDetection() {
+        isLiveDetecting = false;
+        smoothedLiveCorners = null;
+        liveStabilityScore = 0;
+        clearLiveOverlay();
+    }
+
+    function clearLiveOverlay() {
+        if (!liveOverlayCanvas || !liveOverlayCtx) return;
+        liveOverlayCtx.clearRect(0, 0, liveOverlayCanvas.width, liveOverlayCanvas.height);
+    }
+
+    function processLiveFrame(timestamp) {
+        if (!isLiveDetecting || currentStep !== 'capture') return;
+
+        // Throttle frame processing: ~85ms between detections (~11.7 FPS)
+        if (timestamp - lastDetectTimestamp >= 85) {
+            lastDetectTimestamp = timestamp;
+
+            if (video && video.readyState >= 2 && video.videoWidth > 0) {
+                runLiveQuadDetection();
+            }
+        }
+
+        if (isLiveDetecting && currentStep === 'capture') {
+            requestAnimationFrame(processLiveFrame);
+        }
+    }
+
+    function runLiveQuadDetection() {
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        if (!vw || !vh) return;
+
+        // Sync live overlay canvas size with display dimensions
+        const vp = document.getElementById('camVideoViewport');
+        if (vp && liveOverlayCanvas) {
+            const rect = vp.getBoundingClientRect();
+            if (liveOverlayCanvas.width !== rect.width || liveOverlayCanvas.height !== rect.height) {
+                liveOverlayCanvas.width = rect.width;
+                liveOverlayCanvas.height = rect.height;
+            }
+        }
+
+        // Draw downscaled frame to 320x240 for fast CV processing
+        const pw = 320;
+        const ph = Math.round(pw * (vh / vw)) || 240;
+        if (liveDetectCanvas.width !== pw || liveDetectCanvas.height !== ph) {
+            liveDetectCanvas.width = pw;
+            liveDetectCanvas.height = ph;
+        }
+
+        liveDetectCtx.drawImage(video, 0, 0, pw, ph);
+        const imgData = liveDetectCtx.getImageData(0, 0, pw, ph);
+        const data = imgData.data;
+
+        // Compute Grayscale & Gradient Magnitude Map
+        const lum = new Float32Array(pw * ph);
+        for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+            lum[j] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        }
+
+        const grad = new Float32Array(pw * ph);
+        let totalGrad = 0;
+        for (let y = 1; y < ph - 1; y++) {
+            const row = y * pw;
+            for (let x = 1; x < pw - 1; x++) {
+                const idx = row + x;
+                const gx = lum[idx + 1] - lum[idx - 1];
+                const gy = lum[idx + pw] - lum[idx - pw];
+                const g = Math.abs(gx) + Math.abs(gy);
+                grad[idx] = g;
+                totalGrad += g;
+            }
+        }
+
+        const avgGrad = totalGrad / (pw * ph);
+        const gradThreshold = Math.max(16, avgGrad * 1.55);
+
+        // Radial raycasting from center in 32 directions
+        const cx = pw / 2;
+        const cy = ph / 2;
+        const numRays = 32;
+        const boundaryPts = [];
+
+        for (let r = 0; r < numRays; r++) {
+            const angle = (r * 2 * Math.PI) / numRays;
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+
+            const maxR = Math.min(
+                cosA > 0 ? (pw - 4 - cx) / cosA : (4 - cx) / cosA,
+                sinA > 0 ? (ph - 4 - cy) / sinA : (4 - cy) / sinA
+            );
+
+            let bestPt = null;
+            let maxVal = 0;
+
+            for (let dist = maxR * 0.15; dist < maxR * 0.96; dist += 3) {
+                const px = Math.round(cx + cosA * dist);
+                const py = Math.round(cy + sinA * dist);
+                if (px < 2 || px >= pw - 2 || py < 2 || py >= ph - 2) break;
+
+                const val = grad[py * pw + px];
+                if (val > gradThreshold && val > maxVal) {
+                    maxVal = val;
+                    bestPt = { x: px, y: py };
+                }
+            }
+
+            if (bestPt) {
+                boundaryPts.push(bestPt);
+            }
+        }
+
+        // Find candidate 4 corners
+        let detected = false;
+        if (boundaryPts.length >= 14) {
+            let tl = null, tr = null, br = null, bl = null;
+            let minTL = Infinity, maxTR = -Infinity, maxBR = -Infinity, minBL = Infinity;
+
+            for (const pt of boundaryPts) {
+                if (pt.x < cx * 1.15 && pt.y < cy * 1.15) {
+                    const v = pt.x + pt.y;
+                    if (v < minTL) { minTL = v; tl = pt; }
+                }
+                if (pt.x > cx * 0.85 && pt.y < cy * 1.15) {
+                    const v = pt.x - pt.y;
+                    if (v > maxTR) { maxTR = v; tr = pt; }
+                }
+                if (pt.x > cx * 0.85 && pt.y > cy * 0.85) {
+                    const v = pt.x + pt.y;
+                    if (v > maxBR) { maxBR = v; br = pt; }
+                }
+                if (pt.x < cx * 1.15 && pt.y > cy * 0.85) {
+                    const v = pt.x - pt.y;
+                    if (v < minBL) { minBL = v; bl = pt; }
+                }
+            }
+
+            if (tl && tr && br && bl) {
+                // Convexity verification
+                const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+                const c0 = cross(tl, tr, br);
+                const c1 = cross(tr, br, bl);
+                const c2 = cross(br, bl, tl);
+                const c3 = cross(bl, tl, tr);
+                const isConvex = (c0 > 0 && c1 > 0 && c2 > 0 && c3 > 0) || (c0 < 0 && c1 < 0 && c2 < 0 && c3 < 0);
+
+                if (isConvex) {
+                    // Area check (Shoelace formula)
+                    const quadArea = 0.5 * Math.abs(
+                        (tl.x * tr.y + tr.x * br.y + br.x * bl.y + bl.x * tl.y) -
+                        (tl.y * tr.x + tr.y * br.x + br.y * bl.x + bl.y * tl.x)
+                    );
+                    const areaRatio = quadArea / (pw * ph);
+
+                    // Aspect ratio check
+                    const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                    const avgW = (dist(tl, tr) + dist(bl, br)) / 2;
+                    const avgH = (dist(tl, bl) + dist(tr, br)) / 2;
+                    const aspect = avgW / (avgH || 1);
+
+                    if (areaRatio >= 0.12 && areaRatio <= 0.88 && aspect >= 0.35 && aspect <= 2.85) {
+                        detected = true;
+
+                        // Normalize to [0..1]
+                        const rawNorm = [
+                            { x: tl.x / pw, y: tl.y / ph },
+                            { x: tr.x / pw, y: tr.y / ph },
+                            { x: br.x / pw, y: br.y / ph },
+                            { x: bl.x / pw, y: bl.y / ph }
+                        ];
+
+                        // Exponential Moving Average Smoothing to eliminate polygon jitter
+                        if (!smoothedLiveCorners) {
+                            smoothedLiveCorners = rawNorm;
+                        } else {
+                            const alpha = 0.35;
+                            for (let i = 0; i < 4; i++) {
+                                smoothedLiveCorners[i].x = smoothedLiveCorners[i].x * (1 - alpha) + rawNorm[i].x * alpha;
+                                smoothedLiveCorners[i].y = smoothedLiveCorners[i].y * (1 - alpha) + rawNorm[i].y * alpha;
+                            }
+                        }
+
+                        // Evaluate stability
+                        if (lastCornerSnapshot) {
+                            let maxDrift = 0;
+                            for (let i = 0; i < 4; i++) {
+                                const d = Math.hypot(smoothedLiveCorners[i].x - lastCornerSnapshot[i].x, smoothedLiveCorners[i].y - lastCornerSnapshot[i].y);
+                                if (d > maxDrift) maxDrift = d;
+                            }
+                            if (maxDrift < 0.015) {
+                                liveStabilityScore = Math.min(8, liveStabilityScore + 1);
+                            } else {
+                                liveStabilityScore = Math.max(0, liveStabilityScore - 2);
+                            }
+                        }
+                        lastCornerSnapshot = smoothedLiveCorners.map(p => ({ x: p.x, y: p.y }));
+                    }
+                }
+            }
+        }
+
+        if (!detected) {
+            liveStabilityScore = Math.max(0, liveStabilityScore - 1);
+            if (liveStabilityScore === 0) {
+                smoothedLiveCorners = null;
+                lastCornerSnapshot = null;
+            }
+        }
+
+        // Render polygon & status
+        renderLiveOverlay();
+    }
+
+    function renderLiveOverlay() {
+        if (!liveOverlayCanvas || !liveOverlayCtx) return;
+        const ctx = liveOverlayCtx;
+        const w = liveOverlayCanvas.width;
+        const h = liveOverlayCanvas.height;
+
+        ctx.clearRect(0, 0, w, h);
+
+        if (!smoothedLiveCorners) {
+            updateLiveStatusUI('searching');
+            return;
+        }
+
+        const isReady = (liveStabilityScore >= 3);
+        updateLiveStatusUI(isReady ? 'ready' : 'detected');
+
+        // Map normalized corners to overlay canvas
+        const pts = smoothedLiveCorners.map(p => ({
+            x: p.x * w,
+            y: p.y * h
+        }));
+
+        const strokeColor = isReady ? '#10b981' : '#00f2fe';
+        const fillColor   = isReady ? 'rgba(16, 185, 129, 0.16)' : 'rgba(0, 242, 254, 0.14)';
+
+        // 1. Draw quadrilateral contour
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.lineTo(pts[2].x, pts[2].y);
+        ctx.lineTo(pts[3].x, pts[3].y);
+        ctx.closePath();
+
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = strokeColor;
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+
+        // 2. Draw 4 corner pins with white border
+        pts.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 6.5, 0, Math.PI * 2);
+            ctx.fillStyle = strokeColor;
+            ctx.fill();
+            ctx.lineWidth = 2.2;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+        });
+
+        ctx.restore();
+    }
+
+    function updateLiveStatusUI(state) {
+        const pill = document.getElementById('camLiveStatus');
+        const text = document.getElementById('camStatusText');
+        if (!pill || !text) return;
+
+        pill.classList.remove('detected', 'ready');
+
+        if (state === 'ready') {
+            pill.classList.add('ready');
+            text.textContent = 'Siap dipindai';
+        } else if (state === 'detected') {
+            pill.classList.add('detected');
+            text.textContent = 'Dokumen terdeteksi';
+        } else {
+            text.textContent = 'Posisikan dokumen di dalam kamera';
+        }
+    }
+
+    function triggerShutterFlash() {
+        const flash = document.getElementById('camFlashOverlay');
+        if (!flash) return;
+        flash.classList.add('active');
+        setTimeout(() => flash.classList.remove('active'), 140);
+    }
+
+    // ── Photo Capture (MANUAL SHUTTER - TIDAK ADA AUTO-CAPTURE) ──
     function capturePhoto() {
         if (!video || !video.videoWidth) {
             fallbackInput.click();
             return;
         }
 
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = video.videoWidth;
-        tempCanvas.height = video.videoHeight;
-        const ctx = tempCanvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+        // 1. Visual flash feedback
+        triggerShutterFlash();
 
-        stopCamera();
-        loadCapturedImage(tempCanvas.toDataURL('image/jpeg', 0.95));
+        // 2. Capture full-resolution frame from camera
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = video.videoWidth;
+        fullCanvas.height = video.videoHeight;
+        const ctx = fullCanvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, fullCanvas.width, fullCanvas.height);
+
+        // 3. Evaluate live detection corners
+        if (smoothedLiveCorners && smoothedLiveCorners.length === 4) {
+            // Document corners were detected: map directly to full canvas resolution
+            const rawW = fullCanvas.width;
+            const rawH = fullCanvas.height;
+            const fullCorners = smoothedLiveCorners.map(p => ({
+                x: Math.round(p.x * rawW),
+                y: Math.round(p.y * rawH)
+            }));
+
+            // Execute auto perspective warp & enhancement
+            processDirectScan(fullCanvas, fullCorners);
+        } else {
+            // Live detection was not conclusive: fall back to manual 4-corner crop screen
+            stopCamera();
+            loadCapturedImage(fullCanvas.toDataURL('image/jpeg', 0.95));
+        }
+    }
+
+    function processDirectScan(fullCanvas, corners) {
+        const rawW = fullCanvas.width;
+        const rawH = fullCanvas.height;
+
+        // Calculate target dimensions
+        const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        const targetW = Math.round(Math.max(dist(corners[0], corners[1]), dist(corners[3], corners[2])));
+        const targetH = Math.round(Math.max(dist(corners[0], corners[3]), dist(corners[1], corners[2])));
+
+        // Clamp maximum resolution to 1600px for speed and low memory
+        const maxDim = 1600;
+        let finalW = targetW;
+        let finalH = targetH;
+        if (Math.max(finalW, finalH) > maxDim) {
+            const downscale = maxDim / Math.max(finalW, finalH);
+            finalW = Math.round(finalW * downscale);
+            finalH = Math.round(finalH * downscale);
+        }
+
+        // Warp perspective using Heckbert homography mapping
+        const warpedCanvas = warpPerspectiveCanvas(fullCanvas, corners, finalW, finalH);
+
+        // Create new page object with 'magic' filter as default
+        const newPage = {
+            id: Date.now(),
+            sourceImgSrc: fullCanvas.toDataURL('image/jpeg', 0.88),
+            cleanCanvas: warpedCanvas,
+            corners: corners,
+            rotation: 0,
+            filter: 'magic',
+            displayCanvas: document.createElement('canvas')
+        };
+
+        applyFilterToPage(newPage);
+
+        if (isReEditingPage && pages[activePageIndex]) {
+            pages[activePageIndex] = newPage;
+            isReEditingPage = false;
+            stopCamera();
+            renderReviewScreen();
+        } else {
+            pages.push(newPage);
+            activePageIndex = pages.length - 1;
+
+            if (scanMode === 'single') {
+                // Satu Halaman: stop camera and proceed directly to review
+                stopCamera();
+                renderReviewScreen();
+                showAutoNotice("✓ Dokumen berhasil dipindai & diratakan");
+            } else {
+                // Beberapa Halaman: keep camera running, update counter badge
+                updateMultiFloatingBar();
+                showAutoNotice(`✓ Halaman ${pages.length} tersimpan. Lanjut scan halaman berikutnya.`);
+            }
+        }
+    }
+
+    function handleFileSelected(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            stopCamera();
+            loadCapturedImage(evt.target.result);
+        };
+        reader.readAsDataURL(file);
+        fallbackInput.value = '';
     }
 
     function loadCapturedImage(dataUrl) {
         const img = new Image();
         img.onload = function() {
             cropRotation = 0;
-            // Setup crop state & dimensions so display coordinates are established
             setupCropScreenData(img);
 
-            // ── Auto Document Detection ──
+            // Run detection on imported image
             const detectResult = detectDocumentQuad(img);
-
             if (detectResult.success && detectResult.corners) {
-                // High confidence quadrilateral detected: set corners and auto-warp directly!
                 window.currentCorners = detectResult.corners;
                 renderCornerHandles();
                 applyCropAndPerspective();
                 showAutoNotice("✓ Dokumen terdeteksi otomatis");
             } else {
-                // Fallback: Show manual crop screen with 5% inset handles
                 resetCropCorners();
                 goToStep('crop');
                 showAutoNotice("Silakan sesuaikan 4 sudut dokumen");
@@ -1177,7 +1828,7 @@ window.camScanner = (function() {
         img.src = dataUrl;
     }
 
-    // ── Setup Crop Screen Dimensions ──
+    // ── Crop Screen Management ──
     function setupCropScreenData(imgElement) {
         cropImg.src = imgElement.src;
         cropImg.dataset.rawWidth = imgElement.naturalWidth || imgElement.width;
@@ -1218,15 +1869,14 @@ window.camScanner = (function() {
     function resetCropCorners() {
         const w = cropImgRect.width || 320;
         const h = cropImgRect.height || 420;
-        // Inset 5% from edges
         const insetX = Math.round(w * 0.05);
         const insetY = Math.round(h * 0.05);
 
         window.currentCorners = [
-            { x: insetX,     y: insetY },     // TL
-            { x: w - insetX, y: insetY },     // TR
-            { x: w - insetX, y: h - insetY }, // BR
-            { x: insetX,     y: h - insetY }  // BL
+            { x: insetX,     y: insetY },
+            { x: w - insetX, y: insetY },
+            { x: w - insetX, y: h - insetY },
+            { x: insetX,     y: h - insetY }
         ];
 
         renderCornerHandles();
@@ -1271,7 +1921,6 @@ window.camScanner = (function() {
         let posX = clientX - stageRect.left;
         let posY = clientY - stageRect.top;
 
-        // Clamp inside stage
         posX = Math.max(0, Math.min(posX, cropImgRect.width));
         posY = Math.max(0, Math.min(posY, cropImgRect.height));
 
@@ -1295,12 +1944,10 @@ window.camScanner = (function() {
         const ctx = loupeCanvas.getContext('2d');
         ctx.clearRect(0, 0, 120, 120);
 
-        // Zoom 2.5x
         const zoom = 2.5;
         const srcW = 120 / zoom;
         const srcH = 120 / zoom;
 
-        // Map display point to natural image coordinates
         const scaleX = cropImg.naturalWidth / cropImgRect.width;
         const scaleY = cropImg.naturalHeight / cropImgRect.height;
         const natX = point.x * scaleX;
@@ -1313,14 +1960,13 @@ window.camScanner = (function() {
         );
     }
 
-    // ── Auto Document Detection Engine (Pure Canvas 2D) ──
+    // ── Static Image Quad Detection Engine ──
     function detectDocumentQuad(imgElement) {
         try {
             const rawW = imgElement.naturalWidth || imgElement.width;
             const rawH = imgElement.naturalHeight || imgElement.height;
             if (!rawW || !rawH) return { success: false };
 
-            // 1. Proportional processing dimensions (width ~360px)
             const pw = 360;
             const ph = Math.round(pw * (rawH / rawW));
             if (pw < 50 || ph < 50) return { success: false };
@@ -1334,13 +1980,9 @@ window.camScanner = (function() {
             const imgData = offCtx.getImageData(0, 0, pw, ph);
             const data = imgData.data;
 
-            // 2. Luminance & Edge Gradient Map
             const lum = new Float32Array(pw * ph);
-            let totalLum = 0;
             for (let i = 0, j = 0; i < data.length; i += 4, j++) {
-                const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                lum[j] = y;
-                totalLum += y;
+                lum[j] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
             }
 
             const grad = new Float32Array(pw * ph);
@@ -1356,9 +1998,8 @@ window.camScanner = (function() {
                 }
             }
             const avgGrad = totalGrad / (pw * ph);
-            const gradThreshold = Math.max(16, avgGrad * 1.5);
+            const gradThreshold = Math.max(16, avgGrad * 1.55);
 
-            // 3. Radial Raycast from center outward in 36 directions to detect document contour
             const cx = pw / 2;
             const cy = ph / 2;
             const numRays = 36;
@@ -1369,7 +2010,6 @@ window.camScanner = (function() {
                 const cosA = Math.cos(angle);
                 const sinA = Math.sin(angle);
 
-                // Ray limit to canvas borders
                 const maxR = Math.min(
                     cosA > 0 ? (pw - 4 - cx) / cosA : (4 - cx) / cosA,
                     sinA > 0 ? (ph - 4 - cy) / sinA : (4 - cy) / sinA
@@ -1378,8 +2018,7 @@ window.camScanner = (function() {
                 let bestPoint = null;
                 let maxEdgeVal = 0;
 
-                // Step outward from 12% to 98% radius
-                for (let dist = maxR * 0.12; dist < maxR * 0.98; dist += 2) {
+                for (let dist = maxR * 0.14; dist < maxR * 0.98; dist += 2) {
                     const px = Math.round(cx + cosA * dist);
                     const py = Math.round(cy + sinA * dist);
                     if (px < 2 || px >= pw - 2 || py < 2 || py >= ph - 2) break;
@@ -1387,83 +2026,44 @@ window.camScanner = (function() {
                     const gVal = grad[py * pw + px];
                     if (gVal > gradThreshold && gVal > maxEdgeVal) {
                         maxEdgeVal = gVal;
-                        bestPoint = { x: px, y: py, edge: gVal };
+                        bestPoint = { x: px, y: py };
                     }
                 }
 
-                if (bestPoint) {
-                    boundaryPoints.push(bestPoint);
-                }
+                if (bestPoint) boundaryPoints.push(bestPoint);
             }
 
-            if (boundaryPoints.length < 14) {
-                return { success: false };
-            }
+            if (boundaryPoints.length < 14) return { success: false };
 
-            // 4. Determine 4 candidate corner points most consistent with document contours
             let tl = null, tr = null, br = null, bl = null;
             let minTL = Infinity, maxTR = -Infinity, maxBR = -Infinity, minBL = Infinity;
 
             for (const pt of boundaryPoints) {
-                // Top-Left: min(x + y)
                 if (pt.x < cx * 1.15 && pt.y < cy * 1.15) {
                     const v = pt.x + pt.y;
                     if (v < minTL) { minTL = v; tl = pt; }
                 }
-                // Top-Right: max(x - y)
                 if (pt.x > cx * 0.85 && pt.y < cy * 1.15) {
                     const v = pt.x - pt.y;
                     if (v > maxTR) { maxTR = v; tr = pt; }
                 }
-                // Bottom-Right: max(x + y)
                 if (pt.x > cx * 0.85 && pt.y > cy * 0.85) {
                     const v = pt.x + pt.y;
                     if (v > maxBR) { maxBR = v; br = pt; }
                 }
-                // Bottom-Left: min(x - y)
                 if (pt.x < cx * 1.15 && pt.y > cy * 0.85) {
                     const v = pt.x - pt.y;
                     if (v < minBL) { minBL = v; bl = pt; }
                 }
             }
 
-            if (!tl || !tr || !br || !bl) {
-                return { success: false };
-            }
+            if (!tl || !tr || !br || !bl) return { success: false };
 
-            // 5. Geometrical validation: Convexity check
             const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-            const c0 = cross(tl, tr, br);
-            const c1 = cross(tr, br, bl);
-            const c2 = cross(br, bl, tl);
-            const c3 = cross(bl, tl, tr);
+            const isConvex = (cross(tl, tr, br) > 0 && cross(tr, br, bl) > 0 && cross(br, bl, tl) > 0 && cross(bl, tl, tr) > 0) ||
+                             (cross(tl, tr, br) < 0 && cross(tr, br, bl) < 0 && cross(br, bl, tl) < 0 && cross(bl, tl, tr) < 0);
+            if (!isConvex) return { success: false };
 
-            const isConvex = (c0 > 0 && c1 > 0 && c2 > 0 && c3 > 0) || (c0 < 0 && c1 < 0 && c2 < 0 && c3 < 0);
-            if (!isConvex) {
-                return { success: false };
-            }
-
-            // Area Ratio Check (Shoelace formula)
-            const quadArea = 0.5 * Math.abs(
-                (tl.x * tr.y + tr.x * br.y + br.x * bl.y + bl.x * tl.y) -
-                (tl.y * tr.x + tr.y * br.x + br.y * bl.x + bl.y * tl.x)
-            );
-            const totalArea = pw * ph;
-            const areaRatio = quadArea / totalArea;
-            if (areaRatio < 0.15 || areaRatio > 0.92) {
-                return { success: false };
-            }
-
-            // Aspect Ratio Check
-            const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
-            const avgW = (dist(tl, tr) + dist(bl, br)) / 2;
-            const avgH = (dist(tl, bl) + dist(tr, br)) / 2;
-            const aspect = avgW / avgH;
-            if (aspect < 0.35 || aspect > 2.8) {
-                return { success: false };
-            }
-
-            // 6. Map to display coordinates (cropImgRect)
             const scaleToDispX = cropImgRect.width / pw;
             const scaleToDispY = cropImgRect.height / ph;
 
@@ -1481,7 +2081,6 @@ window.camScanner = (function() {
         }
     }
 
-    // ── Manual Crop Re-adjustment for Active Page ──
     function openManualCropForActivePage() {
         if (!pages[activePageIndex]) return;
         isReEditingPage = true;
@@ -1495,12 +2094,13 @@ window.camScanner = (function() {
                 updateCropDimensions();
 
                 if (p.corners && p.corners.length === 4) {
-                    window.currentCorners = [
-                        { x: p.corners[0].x, y: p.corners[0].y },
-                        { x: p.corners[1].x, y: p.corners[1].y },
-                        { x: p.corners[2].x, y: p.corners[2].y },
-                        { x: p.corners[3].x, y: p.corners[3].y }
-                    ];
+                    // Map natural coordinates to crop stage display dimensions
+                    const scaleX = cropImgRect.width / img.naturalWidth;
+                    const scaleY = cropImgRect.height / img.naturalHeight;
+                    window.currentCorners = p.corners.map(c => ({
+                        x: Math.round(c.x * scaleX),
+                        y: Math.round(c.y * scaleY)
+                    }));
                 } else {
                     resetCropCorners();
                 }
@@ -1513,14 +2113,13 @@ window.camScanner = (function() {
         }
     }
 
-    // ── Heckbert Projective Homography Perspective Correction ──
+    // ── Heckbert Projective Homography Perspective Correction Engine ──
     function applyCropAndPerspective() {
         const rawW = cropImg.naturalWidth;
         const rawH = cropImg.naturalHeight;
         const dispW = cropImgRect.width || 320;
         const dispH = cropImgRect.height || 420;
 
-        // Map corners to natural image coordinates
         const scaleX = rawW / dispW;
         const scaleY = rawH / dispH;
         const s = window.currentCorners.map(p => ({
@@ -1528,12 +2127,10 @@ window.camScanner = (function() {
             y: p.y * scaleY
         }));
 
-        // Calculate destination dimensions
         const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
         const targetW = Math.round(Math.max(dist(s[0], s[1]), dist(s[3], s[2])));
         const targetH = Math.round(Math.max(dist(s[0], s[3]), dist(s[1], s[2])));
 
-        // Clamp maximum resolution to 1600px on the longest side to keep memory light
         const maxDim = 1600;
         let finalW = targetW;
         let finalH = targetH;
@@ -1543,7 +2140,6 @@ window.camScanner = (function() {
             finalH = Math.round(finalH * downscale);
         }
 
-        // Draw rotated raw image to offscreen canvas first if rotated
         const offCanvas = document.createElement('canvas');
         if (cropRotation !== 0) {
             const isRot = (cropRotation === 90 || cropRotation === 270);
@@ -1559,17 +2155,46 @@ window.camScanner = (function() {
             offCanvas.getContext('2d').drawImage(cropImg, 0, 0);
         }
 
-        const srcCtx = offCanvas.getContext('2d');
-        const srcData = srcCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+        const dstCanvas = warpPerspectiveCanvas(offCanvas, s, finalW, finalH);
 
-        // Target canvas
+        if (isReEditingPage && pages[activePageIndex]) {
+            pages[activePageIndex].cleanCanvas = dstCanvas;
+            pages[activePageIndex].corners = s.map(p => ({ x: p.x, y: p.y }));
+            pages[activePageIndex].rotation = cropRotation;
+            applyFilterToPage(pages[activePageIndex]);
+            isReEditingPage = false;
+        } else {
+            const newPage = {
+                id: Date.now(),
+                sourceImgSrc: cropImg.src,
+                cleanCanvas: dstCanvas,
+                corners: s.map(p => ({ x: p.x, y: p.y })),
+                rotation: cropRotation,
+                filter: 'magic',
+                displayCanvas: document.createElement('canvas')
+            };
+            applyFilterToPage(newPage);
+            pages.push(newPage);
+            activePageIndex = pages.length - 1;
+        }
+
+        renderReviewScreen();
+    }
+
+    function warpPerspectiveCanvas(sourceCanvas, s, finalW, finalH) {
+        const sWidth = sourceCanvas.width;
+        const sHeight = sourceCanvas.height;
+        const srcCtx = sourceCanvas.getContext('2d');
+        const srcData = srcCtx.getImageData(0, 0, sWidth, sHeight);
+        const sPixels = srcData.data;
+
         const dstCanvas = document.createElement('canvas');
         dstCanvas.width = finalW;
         dstCanvas.height = finalH;
         const dstCtx = dstCanvas.getContext('2d');
         const dstData = dstCtx.createImageData(finalW, finalH);
+        const dPixels = dstData.data;
 
-        // Heckbert Projective Homography Mapping: Unit Square [0,1]x[0,1] -> Quad
         const x0 = s[0].x, y0 = s[0].y;
         const x1 = s[1].x, y1 = s[1].y;
         const x2 = s[2].x, y2 = s[2].y;
@@ -1584,7 +2209,6 @@ window.camScanner = (function() {
 
         let a, b, c, d, e, f, g, h;
         if (dx3 === 0 && dy3 === 0) {
-            // Affine
             a = x1 - x0; b = x3 - x0; c = x0;
             d = y1 - y0; e = y3 - y0; f = y0;
             g = 0; h = 0;
@@ -1600,21 +2224,16 @@ window.camScanner = (function() {
             f = y0;
         }
 
-        const sWidth = offCanvas.width;
-        const sHeight = offCanvas.height;
-        const sPixels = srcData.data;
-        const dPixels = dstData.data;
-
-        // Pixel inverse sampling
         for (let y = 0; y < finalH; y++) {
             const v = y / finalH;
+            const rowOffset = y * finalW;
             for (let x = 0; x < finalW; x++) {
                 const u = x / finalW;
                 const denom = (g * u + h * v + 1.0) || 1e-6;
                 const srcX = Math.round((a * u + b * v + c) / denom);
                 const srcY = Math.round((d * u + e * v + f) / denom);
 
-                const dstIdx = (y * finalW + x) * 4;
+                const dstIdx = (rowOffset + x) * 4;
                 if (srcX >= 0 && srcX < sWidth && srcY >= 0 && srcY < sHeight) {
                     const srcIdx = (srcY * sWidth + srcX) * 4;
                     dPixels[dstIdx]     = sPixels[srcIdx];
@@ -1629,34 +2248,12 @@ window.camScanner = (function() {
                 }
             }
         }
+
         dstCtx.putImageData(dstData, 0, 0);
-
-        // Store / update page
-        if (isReEditingPage && pages[activePageIndex]) {
-            pages[activePageIndex].cleanCanvas = dstCanvas;
-            pages[activePageIndex].corners = window.currentCorners.map(p => ({ x: p.x, y: p.y }));
-            pages[activePageIndex].rotation = cropRotation;
-            applyFilterToPage(pages[activePageIndex]);
-            isReEditingPage = false;
-        } else {
-            const newPage = {
-                id: Date.now(),
-                sourceImgSrc: cropImg.src,
-                cleanCanvas: dstCanvas,
-                corners: window.currentCorners.map(p => ({ x: p.x, y: p.y })),
-                rotation: cropRotation,
-                filter: 'bw',
-                displayCanvas: document.createElement('canvas')
-            };
-            applyFilterToPage(newPage);
-            pages.push(newPage);
-            activePageIndex = pages.length - 1;
-        }
-
-        renderReviewScreen();
+        return dstCanvas;
     }
 
-    // ── Filters ──
+    // ── Professional Document Enhancement Filters ──
     function applyFilterToPage(page) {
         const src = page.cleanCanvas;
         const dst = page.displayCanvas;
@@ -1673,23 +2270,50 @@ window.camScanner = (function() {
         const imgData = ctx.getImageData(0, 0, dst.width, dst.height);
         const data = imgData.data;
 
-        if (page.filter === 'grayscale') {
+        if (page.filter === 'magic') {
+            // "Dokumen Jernih / Magic Color":
+            // Whitens paper background, removes yellow/gray shadows, sharpens ink contrast while preserving signature/stamp colors
+            const shadowLift = 26;
             for (let i = 0; i < data.length; i += 4) {
-                const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                data[i] = y;
-                data[i + 1] = y;
-                data[i + 2] = y;
+                const r = data[i], g = data[i + 1], b = data[i + 2];
+                const y = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                let newY;
+                if (y > 155) {
+                    // Background paper: stretch to clean bright white
+                    newY = Math.min(255, y + (255 - y) * 0.78 + shadowLift);
+                } else if (y < 95) {
+                    // Deepen text and lines for legibility
+                    newY = Math.max(0, y * 0.88);
+                } else {
+                    // Smooth contrast curve
+                    newY = ((y - 95) / 60) * 160 + 83;
+                }
+
+                const factor = (newY + 1) / (y + 1);
+                data[i]     = Math.min(255, Math.max(0, r * factor));
+                data[i + 1] = Math.min(255, Math.max(0, g * factor));
+                data[i + 2] = Math.min(255, Math.max(0, b * factor));
             }
         } else if (page.filter === 'bw') {
-            // Black & White Binarization: contrast stretch and threshold
+            // High-contrast clean black & white binarization
             for (let i = 0; i < data.length; i += 4) {
                 const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                const val = y > 135 ? 255 : (y < 85 ? 0 : (y - 85) * 5.1);
-                data[i] = val;
+                const val = y > 140 ? 255 : (y < 85 ? 0 : (y - 85) * 4.6);
+                data[i]     = val;
                 data[i + 1] = val;
                 data[i + 2] = val;
             }
+        } else if (page.filter === 'grayscale') {
+            // Neutral grayscale
+            for (let i = 0; i < data.length; i += 4) {
+                const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                data[i]     = y;
+                data[i + 1] = y;
+                data[i + 2] = y;
+            }
         }
+
         ctx.putImageData(imgData, 0, 0);
     }
 
@@ -1701,7 +2325,7 @@ window.camScanner = (function() {
         renderThumbnails();
     }
 
-    // ── Review Screen & Multi-page ──
+    // ── Review Screen & Multi-Page Manager ──
     function renderReviewScreen() {
         goToStep('review');
         renderProcessedPreview();
@@ -1717,7 +2341,6 @@ window.camScanner = (function() {
         const ctx = processedCanvas.getContext('2d');
         ctx.drawImage(page.displayCanvas, 0, 0);
 
-        // Update active filter chip UI
         filterChips.forEach(c => {
             c.classList.toggle('active', c.dataset.filter === page.filter);
         });
@@ -1741,7 +2364,7 @@ window.camScanner = (function() {
             numSpan.className = 'cam-page-num';
             numSpan.textContent = `Hal ${idx + 1}`;
 
-            // Delete button (only if > 1 page)
+            // Delete button (allowed if > 1 page)
             if (pages.length > 1) {
                 const delBtn = document.createElement('button');
                 delBtn.className = 'cam-page-del-btn';
@@ -1764,7 +2387,7 @@ window.camScanner = (function() {
         document.getElementById('camSummaryPages').textContent = `${pages.length} Halaman`;
     }
 
-    // ── PDF Generation & Submission ──
+    // ── Final PDF Generation & Backend Upload ──
     async function submitFinalDocument(e) {
         e.preventDefault();
 
@@ -1777,7 +2400,6 @@ window.camScanner = (function() {
         const docType = document.getElementById('camDocType').value;
         const docDesc = document.getElementById('camDocDesc').value.trim();
 
-        // Determine target case_id
         let targetCaseId = activeOptions.caseId;
         if (!targetCaseId) {
             const caseSelect = document.getElementById('camCaseSelect');
@@ -1789,7 +2411,6 @@ window.camScanner = (function() {
             return;
         }
 
-        // Show loading
         const submitBtn = document.getElementById('camSubmitBtn');
         const submitText = document.getElementById('camSubmitText');
         const submitSpinner = document.getElementById('camSubmitSpinner');
@@ -1798,9 +2419,8 @@ window.camScanner = (function() {
         submitSpinner.style.display = 'inline';
 
         try {
-            // Generate PDF using jsPDF
             if (!window.jspdf || !window.jspdf.jsPDF) {
-                throw new Error("Library jsPDF tidak ditemukan. Pastikan file jspdf.umd.min.js telah dimuat.");
+                throw new Error("Library jsPDF tidak ditemukan. Pastikan jspdf.umd.min.js telah dimuat.");
             }
 
             const { jsPDF } = window.jspdf;
@@ -1821,11 +2441,9 @@ window.camScanner = (function() {
                     pdf.addPage('a4', orientation);
                 }
 
-                // Fit to A4
                 const pageWidth = isLandscape ? 297 : 210;
                 const pageHeight = isLandscape ? 210 : 297;
 
-                // Scale image to fit inside A4 margins (5mm margin)
                 const margin = 5;
                 const maxW = pageWidth - (margin * 2);
                 const maxH = pageHeight - (margin * 2);
@@ -1836,16 +2454,15 @@ window.camScanner = (function() {
                 const posX = (pageWidth - drawW) / 2;
                 const posY = (pageHeight - drawH) / 2;
 
-                const imgDataUrl = pCanvas.toDataURL('image/jpeg', 0.82);
+                const imgDataUrl = pCanvas.toDataURL('image/jpeg', 0.84);
                 pdf.addImage(imgDataUrl, 'JPEG', posX, posY, drawW, drawH);
             }
 
             const pdfBlob = pdf.output('blob');
 
-            // Size validation against 10MB limit
             const maxSize = 10 * 1024 * 1024;
             if (pdfBlob.size > maxSize) {
-                alert("Ukuran dokumen melebihi batas 10 MB. Silakan kurangi jumlah halaman atau kualitas scan sebelum menyimpan.");
+                alert("Ukuran dokumen melebihi batas 10 MB. Silakan kurangi jumlah halaman sebelum menyimpan.");
                 submitBtn.disabled = false;
                 submitText.style.display = 'inline';
                 submitSpinner.style.display = 'none';
@@ -1855,7 +2472,6 @@ window.camScanner = (function() {
             const cleanFileName = docName.replace(/[^a-zA-Z0-9_\-\s]/g, '').trim() || 'Dokumen_Scan';
             const pdfFile = new File([pdfBlob], `${cleanFileName}.pdf`, { type: 'application/pdf' });
 
-            // Build FormData
             const formData = new FormData();
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ||
                               document.querySelector('input[name="_token"]')?.value;
@@ -1872,7 +2488,6 @@ window.camScanner = (function() {
                 formData.append('document_request_id', activeOptions.documentRequestId);
             }
 
-            // Determine route based on role
             const endpoint = activeOptions.isAdvocate
                 ? `/advokat/perkara/${targetCaseId}/dokumen/upload`
                 : `/klien/perkara/${targetCaseId}/dokumen`;
@@ -1890,7 +2505,6 @@ window.camScanner = (function() {
                 throw new Error(`Upload gagal dengan status ${response.status}`);
             }
 
-            // Success: Close and reload to show new document with flash message
             closeScanner();
             window.location.reload();
 

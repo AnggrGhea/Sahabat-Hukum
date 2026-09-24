@@ -87,7 +87,7 @@
     <div class="p-list-panel">
         <div class="p-list-header">
             <div class="p-list-title">Perkara</div>
-            <button onclick="document.getElementById('modal-buat-perkara').classList.toggle('hidden')" class="btn-baru">
+            <button onclick="openBuatPerkaraModal()" class="btn-baru">
                 <i data-lucide="plus" style="width:14px;"></i> Baru
             </button>
         </div>
@@ -656,16 +656,18 @@
     <div style="background:#fff;border-radius:12px;padding:28px;width:520px;max-height:90vh;overflow-y:auto;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
             <h3 style="font-size:1rem;font-weight:700;color:#1e293b;">Buat Perkara Baru</h3>
-            <button onclick="document.getElementById('modal-buat-perkara').classList.add('hidden')" style="background:none;border:none;cursor:pointer;color:#64748b;">✕</button>
+            <button type="button" onclick="closeBuatPerkaraModal()" style="background:none;border:none;cursor:pointer;color:#64748b;">✕</button>
         </div>
         <form method="POST" action="{{ route('advokat.cases.store') }}">
             @csrf
             <div style="margin-bottom:12px;">
                 <label style="font-size:.78rem;font-weight:500;color:#374151;display:block;margin-bottom:4px;">Konsultasi Terkait *</label>
-                <select name="consultation_id" required style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:.85rem;box-sizing:border-box;">
+                <select name="consultation_id" id="consultation_id_select" required style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:.85rem;box-sizing:border-box;">
                     <option value="">-- Pilih Konsultasi --</option>
-                    @foreach(\App\Models\Consultation::where('lawyer_id', Auth::id())->where('status','Selesai')->whereDoesntHave('case')->with('client')->get() as $k)
-                    <option value="{{ $k->id }}">{{ $k->client->name }} — {{ $k->title }}</option>
+                    @foreach($availableConsultations ?? [] as $k)
+                    <option value="{{ $k->id }}" {{ (string) request('from_consultation') === (string) $k->id ? 'selected' : '' }}>
+                        {{ $k->client?->name ?? 'Klien' }} — {{ $k->title }}
+                    </option>
                     @endforeach
                 </select>
             </div>
@@ -695,7 +697,7 @@
                 <input type="date" name="started_at" required value="{{ date('Y-m-d') }}" style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:.85rem;box-sizing:border-box;">
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end;">
-                <button type="button" onclick="document.getElementById('modal-buat-perkara').classList.add('hidden')" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;font-size:.85rem;cursor:pointer;background:#fff;">Batal</button>
+                <button type="button" onclick="closeBuatPerkaraModal()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;font-size:.85rem;cursor:pointer;background:#fff;">Batal</button>
                 <button type="submit" style="padding:8px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;">Buat Perkara</button>
             </div>
         </form>
@@ -707,15 +709,27 @@
     document.querySelectorAll('button[onclick], a[onclick]').forEach(el => {
         el.addEventListener('click', () => setTimeout(() => lucide.createIcons(), 50));
     });
-    // Modal show fix
+    // Modal Buat Perkara Functions
+    function openBuatPerkaraModal() {
+        const modal = document.getElementById('modal-buat-perkara');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+    }
+    function closeBuatPerkaraModal() {
+        const modal = document.getElementById('modal-buat-perkara');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+        }
+    }
     document.getElementById('modal-buat-perkara').style.display = 'none';
-    document.querySelectorAll('[onclick*="modal-buat-perkara"]').forEach(el => {
-        el.addEventListener('click', function(e) {
-            e.preventDefault();
-            const modal = document.getElementById('modal-buat-perkara');
-            modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
-        });
+    @if(request('from_consultation'))
+    document.addEventListener('DOMContentLoaded', function() {
+        openBuatPerkaraModal();
     });
+    @endif
 
     // Document Modal Functions
     function openDetailDokumenPerkaraModal(btn) {
@@ -853,6 +867,7 @@
     }
 
     window.addEventListener('click', function(e) {
+        if (e.target.id === 'modal-buat-perkara') closeBuatPerkaraModal();
         if (e.target.id === 'modal-detail-dokumen-perkara') closeDetailDokumenPerkaraModal();
         if (e.target.id === 'modal-minta-dokumen') closeAdvokatMintaModal();
         if (e.target.id === 'modal-advokat-upload') closeAdvokatUploadModal();

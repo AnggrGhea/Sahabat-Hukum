@@ -45,6 +45,39 @@ class AdminController extends Controller
         return view('admin.lawyers', compact('lawyers'));
     }
 
+    public function storeLawyer(Request $request)
+    {
+        $validated = $request->validate([
+            'name'           => 'required|string|max:255',
+            'email'          => 'required|string|email|max:255|unique:users,email',
+            'password'       => 'required|string|min:6',
+            'specialization' => 'nullable|string|max:255',
+            'phone'          => 'nullable|string|max:30',
+        ], [
+            'name.required'     => 'Nama advokat wajib diisi.',
+            'email.required'    => 'Email wajib diisi.',
+            'email.unique'      => 'Email sudah terdaftar.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min'      => 'Password minimal 6 karakter.',
+        ]);
+
+        $user = User::create([
+            'name'     => $validated['name'],
+            'email'    => $validated['email'],
+            'password' => bcrypt($validated['password']),
+            'role'     => 'advokat',
+            'status'   => 'aktif',
+        ]);
+
+        \App\Models\LawyerProfile::create([
+            'user_id'        => $user->id,
+            'specialization' => $validated['specialization'] ?? 'Hukum Umum',
+            'phone'          => $validated['phone'] ?? '-',
+        ]);
+
+        return redirect()->route('admin.lawyers')->with('success', "Advokat {$user->name} berhasil ditambahkan.");
+    }
+
     public function cases()
     {
         $cases = LegalCase::with('client', 'lawyer')
