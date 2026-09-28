@@ -598,6 +598,7 @@ class ClientController extends Controller
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success'           => true,
+                'view'              => $view,
                 'month'             => $currentMonth,
                 'schedules'         => $schedules,
                 'upcomingSchedules' => $upcomingSchedules,

@@ -9,6 +9,7 @@ use App\Http\Controllers\LegalAssistantController;
 
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\LandingPageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,10 +17,8 @@ use App\Http\Controllers\ConversationController;
 |--------------------------------------------------------------------------
 */
 
-// Redirect root to login if not authenticated
-Route::get('/', function () {
-    return redirect('/login');
-});
+// Public Landing Page
+Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 
 
 

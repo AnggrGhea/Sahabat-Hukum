@@ -95,12 +95,13 @@ class AdvokatController extends Controller
         ]);
 
         // Create or update schedule entry to prevent duplicates
+        $clientName = $consultation->client?->name ?? 'Klien';
         $existingSchedule = Schedule::where('consultation_id', $consultation->id)->latest()->first();
         if ($existingSchedule) {
             $existingSchedule->update([
                 'lawyer_id'   => $lawyer->id,
                 'client_id'   => $consultation->client_id,
-                'title'       => 'Konsultasi — ' . $consultation->client->name,
+                'title'       => 'Konsultasi — ' . $clientName,
                 'description' => $consultation->title,
                 'start_at'    => $request->scheduled_at,
                 'location'    => $request->location ?? 'Kantor',
@@ -111,7 +112,7 @@ class AdvokatController extends Controller
                 'lawyer_id'       => $lawyer->id,
                 'client_id'       => $consultation->client_id,
                 'consultation_id' => $consultation->id,
-                'title'           => 'Konsultasi — ' . $consultation->client->name,
+                'title'           => 'Konsultasi — ' . $clientName,
                 'description'     => $consultation->title,
                 'start_at'        => $request->scheduled_at,
                 'location'        => $request->location ?? 'Kantor',
