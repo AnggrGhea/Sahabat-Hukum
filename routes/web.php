@@ -56,6 +56,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::delete('/knowledge/{id}', [AdminController::class, 'destroyKnowledge'])->name('admin.knowledge.destroy');
     Route::get('/reports', [AdminController::class, 'reports'])->name('admin.reports');
     Route::get('/settings', [AdminController::class, 'settings'])->name('admin.settings');
+
+    // Pemberitahuan
+    Route::get('/pemberitahuan', [AdminController::class, 'notifications'])->name('admin.notifications');
+    Route::get('/pemberitahuan/{id}/open', [AdminController::class, 'openNotification'])->name('admin.notifications.open');
+    Route::post('/pemberitahuan/{id}/read', [AdminController::class, 'markNotificationAsRead'])->name('admin.notifications.read');
+    Route::post('/pemberitahuan/mark-all-read', [AdminController::class, 'markAllNotificationsAsRead'])->name('admin.notifications.mark-all-read');
 });
 
 // ─── Advokat Routes ────────────────────────────────────────────────────────
@@ -121,4 +127,10 @@ Route::middleware(['auth', 'role:klien'])->prefix('klien')->group(function () {
     Route::get('/percakapan', [ConversationController::class, 'index'])->name('klien.chat');
     Route::post('/percakapan/{id}/messages', [ConversationController::class, 'sendMessage'])->name('klien.chat.send');
     Route::get('/percakapan/{id}/messages', [ConversationController::class, 'getMessages'])->name('klien.chat.messages');
+
+    // Pemberitahuan
+    Route::get('/pemberitahuan', [ClientController::class, 'notifications'])->name('klien.notifications');
+    Route::get('/pemberitahuan/{id}/open', [ClientController::class, 'openNotification'])->name('klien.notifications.open');
+    Route::post('/pemberitahuan/{id}/read', [ClientController::class, 'markNotificationAsRead'])->name('klien.notifications.read');
+    Route::post('/pemberitahuan/mark-all-read', [ClientController::class, 'markAllNotificationsAsRead'])->name('klien.notifications.mark-all-read');
 });

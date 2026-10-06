@@ -120,6 +120,15 @@ class AdvokatController extends Controller
             ]);
         }
 
+        // Notify Client
+        if ($consultation->client) {
+            try {
+                $consultation->client->notify(new \App\Notifications\ScheduleUpdatedNotification($consultation, $request->location ?? 'Kantor'));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to notify client on schedule update: " . $e->getMessage());
+            }
+        }
+
         return redirect()->route('advokat.consultations.show', $id)
             ->with('success', 'Konsultasi berhasil dijadwalkan.');
     }
@@ -344,6 +353,25 @@ class AdvokatController extends Controller
             ]);
         }
 
+        // Notify Client
+        if ($case->client) {
+            try {
+                $case->client->notify(new \App\Notifications\CaseCreatedClientNotification($case));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to notify client on case creation: " . $e->getMessage());
+            }
+        }
+
+        // Notify Admins
+        try {
+            $admins = User::where('role', 'admin')->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\NewCaseAdminNotification($case));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify admins on case creation: " . $e->getMessage());
+        }
+
         return redirect()->route('advokat.cases.show', $case->id)
             ->with('success', 'Perkara berhasil dibuat.');
     }
@@ -359,13 +387,32 @@ class AdvokatController extends Controller
         $lawyer = Auth::user();
         $case   = LegalCase::where('lawyer_id', $lawyer->id)->findOrFail($id);
 
-        CaseProgress::create([
+        $progress = CaseProgress::create([
             'case_id'       => $case->id,
             'title'         => $request->title,
             'description'   => $request->description,
             'progress_date' => $request->progress_date,
             'created_by'    => $lawyer->id,
         ]);
+
+        // Notify Client
+        if ($case->client) {
+            try {
+                $case->client->notify(new \App\Notifications\CaseProgressNotification($case, $progress));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to notify client on case progress: " . $e->getMessage());
+            }
+        }
+
+        // Notify Admins
+        try {
+            $admins = User::where('role', 'admin')->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\CaseProgressAdminNotification($case, $progress));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify admins on case progress: " . $e->getMessage());
+        }
 
         return redirect()->route('advokat.cases.show', $id)
             ->with('success', 'Perkembangan perkara berhasil ditambahkan.');

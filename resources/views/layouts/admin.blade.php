@@ -58,6 +58,15 @@
                 <a href="{{ route('admin.settings') }}" class="nav-item {{ request()->routeIs('admin.settings') ? 'active' : '' }}">
                     <i data-lucide="settings"></i> Pengaturan
                 </a>
+                @php
+                    $unreadNotifAdmin = Auth::check() ? Auth::user()->unreadNotifications->count() : 0;
+                @endphp
+                <a href="{{ route('admin.notifications') }}" class="nav-item {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
+                    <i data-lucide="bell"></i> Pemberitahuan
+                    @if($unreadNotifAdmin > 0)
+                        <span class="nav-item-badge">{{ $unreadNotifAdmin }}</span>
+                    @endif
+                </a>
             </nav>
             
             <div class="sidebar-profile-card">
@@ -87,10 +96,12 @@
                 </div>
                 
                 <div class="header-actions">
-                    <button class="bell-button">
+                    <a href="{{ route('admin.notifications') }}" class="bell-button" title="Pemberitahuan">
                         <i data-lucide="bell"></i>
-                        <span class="bell-badge">2</span>
-                    </button>
+                        @if($unreadNotifAdmin > 0)
+                            <span class="bell-badge">{{ $unreadNotifAdmin }}</span>
+                        @endif
+                    </a>
                     
                     <div class="header-profile-menu">
                         <div class="header-profile-avatar" style="background-color: var(--color-gold);">

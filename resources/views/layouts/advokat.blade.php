@@ -62,8 +62,14 @@
                         <span class="nav-item-badge" style="background:#ef4444; color:#fff; font-weight:700;">{{ $unreadChatAdv }}</span>
                     @endif
                 </a>
+                @php
+                    $unreadCountAdv = Auth::check() ? Auth::user()->unreadNotifications->count() : 0;
+                @endphp
                 <a href="#" class="nav-item">
-                    <i data-lucide="bell"></i> Pemberitahuan <span class="nav-item-badge">4</span>
+                    <i data-lucide="bell"></i> Pemberitahuan
+                    @if($unreadCountAdv > 0)
+                        <span class="nav-item-badge">{{ $unreadCountAdv }}</span>
+                    @endif
                 </a>
             </nav>
             

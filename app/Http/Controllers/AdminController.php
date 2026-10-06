@@ -11,6 +11,7 @@ use App\Models\KnowledgeSource;
 use App\Models\Conversation;
 use App\Notifications\AdvocateAssignedNotification;
 use App\Notifications\ConsultationAssignedClientNotification;
+use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
@@ -297,5 +298,62 @@ class AdminController extends Controller
     public function settings()
     {
         return view('admin.settings');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PEMBERITAHUAN / NOTIFIKASI
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function notifications(Request $request)
+    {
+        $admin  = Auth::user();
+        $filter = $request->query('filter', 'all');
+
+        $query = $admin->notifications();
+
+        if ($filter === 'unread') {
+            $query->whereNull('read_at');
+        }
+
+        $notifications = $query->paginate(15)->withQueryString();
+        $unreadCount   = $admin->unreadNotifications()->count();
+        $totalCount    = $admin->notifications()->count();
+
+        return view('admin.notifications', compact('notifications', 'filter', 'unreadCount', 'totalCount'));
+    }
+
+    public function openNotification($id)
+    {
+        $notification = Auth::user()->notifications()->findOrFail($id);
+
+        if (is_null($notification->read_at)) {
+            $notification->markAsRead();
+        }
+
+        $actionUrl = $notification->data['action_url'] ?? route('admin.notifications');
+        return redirect($actionUrl);
+    }
+
+    public function markNotificationAsRead(Request $request, $id)
+    {
+        $notification = Auth::user()->notifications()->findOrFail($id);
+        $notification->markAsRead();
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Notifikasi berhasil ditandai sudah dibaca.');
+    }
+
+    public function markAllNotificationsAsRead(Request $request)
+    {
+        Auth::user()->unreadNotifications->markAsRead();
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Semua notifikasi berhasil ditandai sudah dibaca.');
     }
 }
