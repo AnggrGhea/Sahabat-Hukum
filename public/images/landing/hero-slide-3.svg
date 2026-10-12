@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#091424"/>
+      <stop offset="50%" stop-color="#0f203b"/>
+      <stop offset="100%" stop-color="#19335a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bgGrad3)"/>
+  <!-- Library bookshelf perspective abstraction -->
+  <g stroke="rgba(212,175,55,0.2)" stroke-width="2" fill="none">
+    <line x1="100" y1="200" x2="1500" y2="200"/>
+    <line x1="100" y1="400" x2="1500" y2="400"/>
+    <line x1="100" y1="600" x2="1500" y2="600"/>
+    <line x1="100" y1="800" x2="1500" y2="800"/>
+    <!-- vertical books lines -->
+    <rect x="250" y="240" width="30" height="150" fill="rgba(212,175,55,0.08)"/>
+    <rect x="290" y="220" width="40" height="170" fill="rgba(212,175,55,0.12)"/>
+    <rect x="340" y="250" width="35" height="140" fill="rgba(212,175,55,0.06)"/>
+    <rect x="750" y="430" width="45" height="160" fill="rgba(212,175,55,0.15)"/>
+    <rect x="805" y="420" width="35" height="170" fill="rgba(212,175,55,0.1)"/>
+    <rect x="850" y="440" width="40" height="150" fill="rgba(212,175,55,0.08)"/>
+  </g>
+  <text x="800" y="520" font-family="'Inter', sans-serif" font-size="20" fill="rgba(255,255,255,0.3)" text-anchor="middle" letter-spacing="4">PERPUSTAKAAN HUKUM &amp; DOKUMENTASI YURIDIS</text>
+</svg>

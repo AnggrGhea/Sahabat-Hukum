@@ -130,8 +130,6 @@
     <script>
       lucide.createIcons();
     </script>
-    <script src="{{ asset('js/jspdf.umd.min.js') }}"></script>
-    @include('components.document-scanner-modal')
     @stack('scripts')
 </body>
 </html>
