@@ -21,11 +21,21 @@ class DocumentPolicy
         }
 
         if ($user->isAdvokat()) {
-            return $document->lawyer_id === $user->id
-                || ($document->case && $document->case->lawyer_id === $user->id);
+            if ($document->lawyer_id === $user->id || $document->uploaded_by === $user->id) {
+                return true;
+            }
+            if ($document->case) {
+                return $document->case->isLawyerAuthorized($user);
+            }
+            return false;
         }
 
         if ($user->isKlien()) {
+            // DOKUMEN INTERNAL TIM ADVOKAT TIDAK BOLEH DIAKSES KLIEN
+            if ($document->is_internal) {
+                return false;
+            }
+
             return $document->client_id === $user->id
                 || ($document->case && $document->case->client_id === $user->id);
         }
@@ -47,7 +57,7 @@ class DocumentPolicy
     public function upload(User $user, LegalCase $case): bool
     {
         if ($user->isAdmin()) {
-            return false; // Admin manages system, client & lawyer handle legal case documents
+            return false;
         }
 
         if ($user->isKlien()) {
@@ -55,7 +65,7 @@ class DocumentPolicy
         }
 
         if ($user->isAdvokat()) {
-            return $case->lawyer_id === $user->id;
+            return $case->isLawyerAuthorized($user);
         }
 
         return false;
@@ -71,8 +81,10 @@ class DocumentPolicy
         }
 
         if ($user->isAdvokat()) {
-            return $document->lawyer_id === $user->id
-                || ($document->case && $document->case->lawyer_id === $user->id);
+            if ($document->case) {
+                return $document->case->isLawyerAuthorized($user);
+            }
+            return $document->lawyer_id === $user->id;
         }
 
         return false;
@@ -107,9 +119,48 @@ class DocumentPolicy
     public function request(User $user, LegalCase $case): bool
     {
         if ($user->isAdvokat()) {
-            return $case->lawyer_id === $user->id;
+            return $case->isLawyerAuthorized($user);
         }
 
         return false;
+    }
+
+    /**
+     * Determine whether the user can collaborate on a document (upload revisions, comments, change status).
+     */
+    public function collaborate(User $user, Document $document): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isAdvokat()) {
+            if ($document->case) {
+                return $document->case->isLawyerAuthorized($user);
+            }
+            return $document->lawyer_id === $user->id;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether the user can finalize a document.
+     */
+    public function finalize(User $user, Document $document): bool
+    {
+        return $this->collaborate($user, $document);
+    }
+
+    /**
+     * Determine whether the user can manage the advocate team for a case.
+     */
+    public function manageTeam(User $user, LegalCase $case): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $case->isLeadLawyer($user);
     }
 }

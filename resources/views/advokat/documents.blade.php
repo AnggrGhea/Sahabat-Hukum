@@ -12,6 +12,12 @@
             <p style="font-size:.825rem;color:#64748b;margin:0;">Verifikasi berkas klien, tolak dokumen tidak valid dengan alasan resmi, atau minta dokumen perkara baru.</p>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            @if($cases->isNotEmpty())
+            <a href="{{ route('advokat.cases.collaboration', $selectedCaseId ?: $cases->first()->id) }}"
+               style="padding:8px 14px;background:#eff6ff;color:#1e3a5f;border:1px solid #bfdbfe;border-radius:8px;font-size:.825rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
+                <i data-lucide="folder-git-2" style="width:15px;height:15px;"></i> Ruang Kolaborasi Perkara
+            </a>
+            @endif
             <button type="button" onclick="openModalMintaDokumen()"
                     style="padding:8px 14px;background:#fff;color:#1e3a5f;border:1px solid #cbd5e1;border-radius:8px;font-size:.825rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                 <i data-lucide="file-plus" style="width:15px;height:15px;"></i> Minta Dokumen Klien

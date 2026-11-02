@@ -272,7 +272,7 @@ class ClientController extends Controller
             'lawyer',
             'progress',
             'documents' => function ($q) {
-                $q->with('uploader', 'verifier')->orderBy('created_at', 'desc');
+                $q->where('is_internal', false)->with('uploader', 'verifier')->orderBy('created_at', 'desc');
             },
             'documentRequests' => function ($q) {
                 $q->with('requester')->orderBy('created_at', 'desc');
@@ -311,11 +311,12 @@ class ClientController extends Controller
         $statusFilter   = $request->query('status', 'all');
         $search         = $request->query('q');
 
-        $query = Document::where(function ($q) use ($client, $caseIds) {
-            $q->where('client_id', $client->id)
-              ->orWhereIn('case_id', $caseIds);
-        })->with(['case.lawyer', 'uploader', 'verifier'])
-          ->orderBy('created_at', 'desc');
+        $query = Document::where('is_internal', false)
+            ->where(function ($q) use ($client, $caseIds) {
+                $q->where('client_id', $client->id)
+                  ->orWhereIn('case_id', $caseIds);
+            })->with(['case.lawyer', 'uploader', 'verifier'])
+              ->orderBy('created_at', 'desc');
 
         if ($selectedCaseId) {
             $query->where('case_id', $selectedCaseId);

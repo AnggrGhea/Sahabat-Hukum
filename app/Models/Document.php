@@ -31,14 +31,20 @@ class Document extends Model
         'verified_by',
         'verified_at',
         'is_from_lawyer',
+        'is_internal',
+        'collaboration_status',
+        'finalized_by',
+        'finalized_at',
     ];
 
     protected $casts = [
-        'due_date'       => 'date',
-        'verified_at'    => 'datetime',
-        'is_from_lawyer' => 'boolean',
-        'version'        => 'integer',
-        'file_size'      => 'integer',
+        'due_date'             => 'date',
+        'verified_at'          => 'datetime',
+        'finalized_at'         => 'datetime',
+        'is_from_lawyer'       => 'boolean',
+        'is_internal'          => 'boolean',
+        'version'              => 'integer',
+        'file_size'            => 'integer',
     ];
 
     // Accessor / Mutator for title
@@ -109,8 +115,33 @@ class Document extends Model
         return $this->hasMany(Document::class, 'parent_id')->orderBy('version', 'desc');
     }
 
+    public function documentVersions()
+    {
+        return $this->hasMany(DocumentVersion::class, 'document_id')->orderBy('version_number', 'desc');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(DocumentComment::class, 'document_id')->orderBy('created_at', 'asc');
+    }
+
+    public function finalizer()
+    {
+        return $this->belongsTo(User::class, 'finalized_by');
+    }
+
     public function auditLogs()
     {
         return $this->hasMany(DocumentAuditLog::class, 'document_id')->orderBy('created_at', 'desc');
+    }
+
+    public function latestVersionRecord()
+    {
+        return $this->hasOne(DocumentVersion::class, 'document_id')->latestOfMany('version_number');
+    }
+
+    public function isFinal(): bool
+    {
+        return $this->collaboration_status === 'Final' || $this->documentVersions()->where('is_final', true)->exists();
     }
 }
