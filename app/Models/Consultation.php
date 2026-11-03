@@ -38,4 +38,9 @@ class Consultation extends Model
     {
         return $this->hasOne(LegalCase::class, 'consultation_id');
     }
+
+    public function conversation()
+    {
+        return $this->hasOne(Conversation::class, 'consultation_id');
+    }
 }

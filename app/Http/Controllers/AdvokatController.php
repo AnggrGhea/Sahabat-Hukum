@@ -54,7 +54,7 @@ class AdvokatController extends Controller
         $lawyer = Auth::user();
         $filter = $request->query('status', 'Semua');
 
-        $query = Consultation::where('lawyer_id', $lawyer->id)->with('client');
+        $query = Consultation::where('lawyer_id', $lawyer->id)->with(['client', 'conversation']);
         if ($filter !== 'Semua') {
             $query->where('status', $filter);
         }
@@ -62,7 +62,7 @@ class AdvokatController extends Controller
 
         // Load first item as active by default
         $activeId     = $request->query('id', $consultations->first()?->id);
-        $consultation = Consultation::with('client', 'lawyer', 'case')
+        $consultation = Consultation::with(['client', 'lawyer', 'case', 'conversation'])
             ->where('lawyer_id', $lawyer->id)
             ->find($activeId);
 
@@ -72,11 +72,11 @@ class AdvokatController extends Controller
     public function consultationDetail($id)
     {
         $lawyer       = Auth::user();
-        $consultation = Consultation::with('client', 'lawyer', 'case')
+        $consultation = Consultation::with(['client', 'lawyer', 'case', 'conversation'])
             ->where('lawyer_id', $lawyer->id)->findOrFail($id);
         $filter       = 'Semua';
         $consultations = Consultation::where('lawyer_id', $lawyer->id)
-            ->with('client')->orderBy('created_at', 'desc')->get();
+            ->with(['client', 'conversation'])->orderBy('created_at', 'desc')->get();
         return view('advokat.consultations', compact('consultations', 'consultation', 'filter'));
     }
 
@@ -95,12 +95,13 @@ class AdvokatController extends Controller
         ]);
 
         // Create or update schedule entry to prevent duplicates
+        $clientName = $consultation->client?->name ?? 'Klien';
         $existingSchedule = Schedule::where('consultation_id', $consultation->id)->latest()->first();
         if ($existingSchedule) {
             $existingSchedule->update([
                 'lawyer_id'   => $lawyer->id,
                 'client_id'   => $consultation->client_id,
-                'title'       => 'Konsultasi — ' . $consultation->client->name,
+                'title'       => 'Konsultasi — ' . $clientName,
                 'description' => $consultation->title,
                 'start_at'    => $request->scheduled_at,
                 'location'    => $request->location ?? 'Kantor',
@@ -111,12 +112,21 @@ class AdvokatController extends Controller
                 'lawyer_id'       => $lawyer->id,
                 'client_id'       => $consultation->client_id,
                 'consultation_id' => $consultation->id,
-                'title'           => 'Konsultasi — ' . $consultation->client->name,
+                'title'           => 'Konsultasi — ' . $clientName,
                 'description'     => $consultation->title,
                 'start_at'        => $request->scheduled_at,
                 'location'        => $request->location ?? 'Kantor',
                 'status'          => 'Aktif',
             ]);
+        }
+
+        // Notify Client
+        if ($consultation->client) {
+            try {
+                $consultation->client->notify(new \App\Notifications\ScheduleUpdatedNotification($consultation, $request->location ?? 'Kantor'));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to notify client on schedule update: " . $e->getMessage());
+            }
         }
 
         return redirect()->route('advokat.consultations.show', $id)
@@ -156,6 +166,13 @@ class AdvokatController extends Controller
         }
         $cases = $query->orderBy('created_at', 'desc')->get();
 
+        $availableConsultations = Consultation::where('lawyer_id', $lawyer->id)
+            ->whereNotIn('status', ['Dibatalkan'])
+            ->whereDoesntHave('case')
+            ->with('client')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $activeId = $request->query('id', $cases->first()?->id);
         $case     = LegalCase::with([
             'client',
@@ -169,7 +186,7 @@ class AdvokatController extends Controller
             },
         ])->where('lawyer_id', $lawyer->id)->find($activeId);
 
-        return view('advokat.cases', compact('cases', 'case', 'filter'));
+        return view('advokat.cases', compact('cases', 'case', 'filter', 'availableConsultations'));
     }
 
     public function caseDetail($id)
@@ -189,7 +206,15 @@ class AdvokatController extends Controller
         $filter = 'Semua';
         $cases  = LegalCase::where('lawyer_id', $lawyer->id)
             ->with('client')->orderBy('created_at', 'desc')->get();
-        return view('advokat.cases', compact('cases', 'case', 'filter'));
+
+        $availableConsultations = Consultation::where('lawyer_id', $lawyer->id)
+            ->whereNotIn('status', ['Dibatalkan'])
+            ->whereDoesntHave('case')
+            ->with('client')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('advokat.cases', compact('cases', 'case', 'filter', 'availableConsultations'));
     }
 
     // ─── Manajemen Dokumen Perkara Advokat ────────────────────────────────────
@@ -284,6 +309,8 @@ class AdvokatController extends Controller
 
         $lawyer       = Auth::user();
         $consultation = Consultation::where('lawyer_id', $lawyer->id)
+            ->whereNotIn('status', ['Dibatalkan'])
+            ->whereDoesntHave('case')
             ->findOrFail($request->consultation_id);
 
         $case = LegalCase::create([
@@ -307,6 +334,44 @@ class AdvokatController extends Controller
             'created_by'    => $lawyer->id,
         ]);
 
+        // Link conversation to the new case after validating participants
+        $conversation = \App\Models\Conversation::where('consultation_id', $consultation->id)->first();
+        if ($conversation && (int)$conversation->client_id === (int)$case->client_id && (int)$conversation->lawyer_id === (int)$case->lawyer_id) {
+            $conversation->update([
+                'case_id' => $case->id,
+                'title'   => 'Perkara: ' . $case->case_number . ' — ' . $case->title,
+            ]);
+        } elseif (!$conversation) {
+            \App\Models\Conversation::create([
+                'consultation_id' => $consultation->id,
+                'case_id'         => $case->id,
+                'client_id'       => $case->client_id,
+                'lawyer_id'       => $case->lawyer_id,
+                'title'           => 'Perkara: ' . $case->case_number . ' — ' . $case->title,
+                'status'          => 'active',
+                'last_message_at' => null,
+            ]);
+        }
+
+        // Notify Client
+        if ($case->client) {
+            try {
+                $case->client->notify(new \App\Notifications\CaseCreatedClientNotification($case));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to notify client on case creation: " . $e->getMessage());
+            }
+        }
+
+        // Notify Admins
+        try {
+            $admins = User::where('role', 'admin')->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\NewCaseAdminNotification($case));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify admins on case creation: " . $e->getMessage());
+        }
+
         return redirect()->route('advokat.cases.show', $case->id)
             ->with('success', 'Perkara berhasil dibuat.');
     }
@@ -322,13 +387,32 @@ class AdvokatController extends Controller
         $lawyer = Auth::user();
         $case   = LegalCase::where('lawyer_id', $lawyer->id)->findOrFail($id);
 
-        CaseProgress::create([
+        $progress = CaseProgress::create([
             'case_id'       => $case->id,
             'title'         => $request->title,
             'description'   => $request->description,
             'progress_date' => $request->progress_date,
             'created_by'    => $lawyer->id,
         ]);
+
+        // Notify Client
+        if ($case->client) {
+            try {
+                $case->client->notify(new \App\Notifications\CaseProgressNotification($case, $progress));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to notify client on case progress: " . $e->getMessage());
+            }
+        }
+
+        // Notify Admins
+        try {
+            $admins = User::where('role', 'admin')->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\CaseProgressAdminNotification($case, $progress));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify admins on case progress: " . $e->getMessage());
+        }
 
         return redirect()->route('advokat.cases.show', $id)
             ->with('success', 'Perkembangan perkara berhasil ditambahkan.');

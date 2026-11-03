@@ -118,7 +118,7 @@ class ClientController extends Controller
         $client = Auth::user();
 
         $consultations = Consultation::where('client_id', $client->id)
-            ->with('lawyer')
+            ->with(['lawyer', 'conversation'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -132,27 +132,14 @@ class ClientController extends Controller
         $consultation = null;
 
         if ($activeId) {
-            $consultation = Consultation::with('lawyer')
+            $consultation = Consultation::with(['lawyer', 'conversation'])
                 ->where('client_id', $client->id)
                 ->find($activeId);
         }
 
-        // Cari advokat yang pernah menangani client
-        $defaultLawyer = Consultation::where('client_id', $client->id)
-            ->whereNotNull('lawyer_id')
-            ->with('lawyer')
-            ->latest()
-            ->first()?->lawyer;
-
-        // Kalau belum pernah ditangani advokat, ambil advokat pertama
-        if (!$defaultLawyer) {
-            $defaultLawyer = User::where('role', 'advokat')->first();
-        }
-
         return view('klien.consultations', compact(
             'consultations',
-            'consultation',
-            'defaultLawyer'
+            'consultation'
         ));
     }
 
@@ -171,31 +158,37 @@ class ClientController extends Controller
 
         $client = Auth::user();
 
-        // Cari advokat yang pernah menangani client
-        $lawyer = Consultation::where('client_id', $client->id)
-            ->whereNotNull('lawyer_id')
-            ->latest()
-            ->first()?->lawyer;
-
-        // Kalau belum ada, gunakan advokat pertama
-        if (!$lawyer) {
-            $lawyer = User::where('role', 'advokat')->first();
-        }
-
-        Consultation::create([
+        $consultation = Consultation::create([
             'client_id'    => $client->id,
-            'lawyer_id'    => $lawyer?->id,
+            'lawyer_id'    => null,
             'problem_type' => $validated['problem_type'],
             'title'        => $validated['title'],
             'description'  => $validated['description'],
             'status'       => 'Menunggu',
         ]);
 
+        // Notify client
+        try {
+            $client->notify(new \App\Notifications\ConsultationSubmittedClientNotification($consultation));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify client on consultation submission: " . $e->getMessage());
+        }
+
+        // Notify admins
+        try {
+            $admins = User::where('role', 'admin')->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\NewConsultationAdminNotification($consultation));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify admins on consultation submission: " . $e->getMessage());
+        }
+
         return redirect()
             ->route('klien.consultations')
             ->with(
                 'success',
-                'Konsultasi berhasil diajukan! Advokat akan segera menghubungi Anda.'
+                'Konsultasi berhasil diajukan! Menunggu peninjauan Admin dan penetapan Advokat.'
             );
     }
 
@@ -208,21 +201,18 @@ class ClientController extends Controller
     {
         $client = Auth::user();
 
-        $consultation = Consultation::with('lawyer')
+        $consultation = Consultation::with(['lawyer', 'conversation'])
             ->where('client_id', $client->id)
             ->findOrFail($id);
 
         $consultations = Consultation::where('client_id', $client->id)
-            ->with('lawyer')
+            ->with(['lawyer', 'conversation'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $defaultLawyer = $consultation->lawyer;
-
         return view('klien.consultations', compact(
             'consultations',
-            'consultation',
-            'defaultLawyer'
+            'consultation'
         ));
     }
 
@@ -473,6 +463,16 @@ class ClientController extends Controller
             $case->lawyer->notify(new \App\Notifications\NewDocumentUploadedNotification($document));
         }
 
+        // Notify Admins
+        try {
+            $admins = User::where('role', 'admin')->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\DocumentActionRequiredAdminNotification($document));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify admins on document upload: " . $e->getMessage());
+        }
+
         return redirect()
             ->route('klien.cases.show', $case->id)
             ->with('success', 'Dokumen berhasil diunggah dan sedang menunggu verifikasi dari Advokat.');
@@ -561,6 +561,16 @@ class ClientController extends Controller
             $case->lawyer->notify(new \App\Notifications\NewDocumentUploadedNotification($newDoc));
         }
 
+        // Notify Admins
+        try {
+            $admins = User::where('role', 'admin')->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\DocumentActionRequiredAdminNotification($newDoc));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify admins on document reupload: " . $e->getMessage());
+        }
+
         return redirect()
             ->route('klien.cases.show', $case->id)
             ->with('success', 'Dokumen revisi berhasil diunggah ulang dan sedang menunggu verifikasi.');
@@ -625,6 +635,7 @@ class ClientController extends Controller
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success'           => true,
+                'view'              => $view,
                 'month'             => $currentMonth,
                 'schedules'         => $schedules,
                 'upcomingSchedules' => $upcomingSchedules,
@@ -640,5 +651,62 @@ class ClientController extends Controller
             'schedules',
             'upcomingSchedules'
         ));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PEMBERITAHUAN / NOTIFIKASI
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function notifications(Request $request)
+    {
+        $client = Auth::user();
+        $filter = $request->query('filter', 'all');
+
+        $query = $client->notifications();
+
+        if ($filter === 'unread') {
+            $query->whereNull('read_at');
+        }
+
+        $notifications = $query->paginate(15)->withQueryString();
+        $unreadCount   = $client->unreadNotifications()->count();
+        $totalCount    = $client->notifications()->count();
+
+        return view('klien.notifications', compact('notifications', 'filter', 'unreadCount', 'totalCount'));
+    }
+
+    public function openNotification($id)
+    {
+        $notification = Auth::user()->notifications()->findOrFail($id);
+
+        if (is_null($notification->read_at)) {
+            $notification->markAsRead();
+        }
+
+        $actionUrl = $notification->data['action_url'] ?? route('klien.notifications');
+        return redirect($actionUrl);
+    }
+
+    public function markNotificationAsRead(Request $request, $id)
+    {
+        $notification = Auth::user()->notifications()->findOrFail($id);
+        $notification->markAsRead();
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Notifikasi berhasil ditandai sudah dibaca.');
+    }
+
+    public function markAllNotificationsAsRead(Request $request)
+    {
+        Auth::user()->unreadNotifications->markAsRead();
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Semua notifikasi berhasil ditandai sudah dibaca.');
     }
 }

@@ -11,13 +11,26 @@
             <h1 style="font-size:1.4rem;font-weight:700;color:#0f172a;margin:0 0 4px 0;">Manajemen Dokumen Perkara</h1>
             <p style="font-size:.85rem;color:#64748b;margin:0;">Kelola, unggah, dan pantau seluruh berkas hukum perkara Anda bersama Advokat pendamping.</p>
         </div>
-        <button type="button" onclick="openUploadModal()"
-                style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;font-size:.85rem;background:#1e3a5f;color:#fff;font-weight:600;border:none;border-radius:8px;cursor:pointer;box-shadow:0 2px 4px rgba(30,58,95,.2);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Unggah Dokumen Baru
-        </button>
+        @php
+            $clientCasesJson = $cases->map(fn($c) => ['id' => $c->id, 'title' => $c->title, 'case_number' => $c->case_number])->values();
+        @endphp
+        <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" onclick="openDocumentScanner({ casesList: {{ json_encode($clientCasesJson) }} })"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;font-size:.85rem;background:#fff;color:#1e3a5f;font-weight:600;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                Scan Dokumen
+            </button>
+            <button type="button" onclick="openUploadModal()"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;font-size:.85rem;background:#1e3a5f;color:#fff;font-weight:600;border:none;border-radius:8px;cursor:pointer;box-shadow:0 2px 4px rgba(30,58,95,.2);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Unggah Dokumen Baru
+            </button>
+        </div>
     </div>
 
     {{-- Flash Notifications --}}

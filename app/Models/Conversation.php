@@ -12,6 +12,7 @@ class Conversation extends Model
     protected $fillable = [
         'client_id',
         'lawyer_id',
+        'consultation_id',
         'case_id',
         'title',
         'status',
@@ -32,9 +33,32 @@ class Conversation extends Model
         return $this->belongsTo(User::class, 'lawyer_id');
     }
 
+    public function consultation()
+    {
+        return $this->belongsTo(Consultation::class, 'consultation_id');
+    }
+
     public function legalCase()
     {
         return $this->belongsTo(LegalCase::class, 'case_id');
+    }
+
+    /**
+     * Get the formatted context label (Perkara or Konsultasi)
+     */
+    public function getContextTitleAttribute(): string
+    {
+        if ($this->legalCase) {
+            $caseNum = $this->legalCase->case_number;
+            $caseTitle = $this->legalCase->title;
+            return $caseNum ? "Perkara: {$caseNum} — {$caseTitle}" : "Perkara: {$caseTitle}";
+        }
+
+        if ($this->consultation) {
+            return "Konsultasi: " . $this->consultation->title;
+        }
+
+        return $this->title ?? 'Percakapan';
     }
 
     public function messages()

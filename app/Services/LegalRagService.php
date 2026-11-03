@@ -6,6 +6,9 @@ use App\Models\KnowledgeSource;
 
 class LegalRagService
 {
+    /**
+     * @deprecated Kept as fallback/rollback provider.
+     */
     protected JdihBpkService $jdih;
     protected GeminiService $gemini;
 
@@ -94,17 +97,26 @@ class LegalRagService
             return $this->gemini->generateAnswer($cleanQuery, $ecourtData['context'], $ecourtData['sources'], $role);
         }
 
-        // D. INTERNAL_SERVICE: Query Internal Knowledge Base only (no JDIH)
+        // D. INTERNAL_SERVICE: Query Internal Knowledge Base only (no Google Search)
         if ($intent === 'INTERNAL_SERVICE') {
             $internalRes = $this->retrieve($cleanQuery, 3);
             return $this->gemini->generateAnswer($cleanQuery, $internalRes['context'], $internalRes['sources'], $role);
         }
 
-        // E. LEGAL_RESEARCH: Retrieve Official Legal Sources (JDIH BPK) + relevant Internal KB
+        // E. MIXED_SERVICE_AND_LEGAL: Combine Internal Knowledge Base + Gemini Google Search Grounding
+        if ($intent === 'MIXED_SERVICE_AND_LEGAL') {
+            $internalRes = $this->retrieve($cleanQuery, 2);
+            return $this->gemini->generateGroundedLegalAnswer(
+                $cleanQuery,
+                $role,
+                $internalRes['context'],
+                $internalRes['sources']
+            );
+        }
+
+        // F. LEGAL_RESEARCH: Primary Legal Research via Gemini API + Google Search Grounding
         $internalContext = '';
         $internalSources = [];
-        $jdihContext = '';
-        $jdihSources = [];
 
         // Check if Internal KB has verified reference material explicitly matching this legal topic
         if ($this->hasInternalMatchIntent($cleanQuery)) {
@@ -115,74 +127,12 @@ class LegalRagService
             }
         }
 
-        // Query JDIH BPK (Official Regulations)
-        $jdihResults = $this->jdih->search($cleanQuery, 3);
-        if (!empty($jdihResults)) {
-            $jdihContextLines = [];
-            foreach ($jdihResults as $idx => $reg) {
-                $num = $idx + 1;
-                $regTitle = $reg['title'] ?? 'Peraturan';
-                $regUrl = $reg['url'] ?? '';
-                $regPdf = $reg['pdf_url'] ?? '';
-                $regStatus = $reg['status'] ?? 'Berlaku';
-                $regAbstract = $reg['abstract'] ?? '';
-
-                $block = "--- SUMBER HUKUM RESMI JDIH BPK [{$num}]: {$regTitle} ---\n"
-                       . "Status Keberlakuan: {$regStatus}\n"
-                       . "Tautan Resmi JDIH BPK: {$regUrl}\n";
-                if ($regPdf) {
-                    $block .= "Unduh Berkas Resmi (PDF): {$regPdf}\n";
-                }
-                if ($regAbstract) {
-                    $block .= "Abstrak / Catatan Resmi: {$regAbstract}\n";
-                }
-                if (!empty($reg['file_snippets'])) {
-                    $block .= "Kutipan Teks Resmi Berkas Peraturan (PDF JDIH BPK):\n";
-                    foreach ($reg['file_snippets'] as $snip) {
-                        $block .= "- {$snip}\n";
-                    }
-                } else {
-                    $block .= "Catatan Verifikasi Berkas: Teks bunyi pasal/ayat spesifik belum terindeks langsung dalam kutipan berkas resmi JDIH BPK ini. JANGAN PERNAH mengarang isi pasal atau nomor pasal berdasarkan asumsi. Tampilkan sumber/metadata yang berhasil ditemukan di atas, dan jelaskan dengan jujur kepada pengguna bahwa ketentuan pasal spesifik belum dapat diverifikasi dari berkas resmi yang tersedia.\n";
-                }
-                $jdihContextLines[] = $block;
-
-                $jdihSources[] = [
-                    'title'       => $regTitle,
-                    'source_type' => 'JDIH BPK',
-                    'url'         => $regUrl,
-                    'pdf_url'     => $regPdf,
-                    'status'      => $regStatus,
-                ];
-            }
-            $jdihContext = implode("\n\n", $jdihContextLines);
-        }
-
-        // Combine Contexts
-        $combinedContext = '';
-        if ($jdihContext !== '' && $internalContext !== '') {
-            $combinedContext = "=== SUMBER PERATURAN PERUNDANG-UNDANGAN RESMI (JDIH BPK) ===\n"
-                             . $jdihContext . "\n\n"
-                             . "=== BASIS PENGETAHUAN INTERNAL SAHABAT HUKUM ===\n"
-                             . $internalContext;
-        } elseif ($jdihContext !== '') {
-            $combinedContext = $jdihContext;
-        } elseif ($internalContext !== '') {
-            $combinedContext = $internalContext;
-        }
-
-        // Combine Sources without duplicate titles
-        $combinedSources = [];
-        $seenTitles = [];
-        foreach (array_merge($jdihSources, $internalSources) as $src) {
-            $key = strtolower(trim($src['title'] ?? ''));
-            if (!isset($seenTitles[$key])) {
-                $seenTitles[$key] = true;
-                $combinedSources[] = $src;
-            }
-        }
-
-        // Generation: Send to Gemini LLM with role-aware instructions
-        return $this->gemini->generateAnswer($cleanQuery, $combinedContext, $combinedSources, $role);
+        return $this->gemini->generateGroundedLegalAnswer(
+            $cleanQuery,
+            $role,
+            $internalContext,
+            $internalSources
+        );
     }
 
     /**
@@ -217,7 +167,10 @@ class LegalRagService
 
         // 3. Check for Internal Office Services (Sahabat Hukum procedures, requirements, fees)
         $isInternal = $this->needsInternalKb($q);
-        if ($isInternal && !$hasLegalQuestion) {
+        if ($isInternal && $hasLegalQuestion) {
+            return 'MIXED_SERVICE_AND_LEGAL';
+        }
+        if ($isInternal) {
             return 'INTERNAL_SERVICE';
         }
 
@@ -380,6 +333,7 @@ class LegalRagService
             'syarat konsultasi', 'persyaratan konsultasi', 'dokumen konsultasi', 'berkas konsultasi',
             'dokumen yang disiapkan', 'kantor sahabat hukum', 'biaya konsultasi', 'jadwal konsultasi',
             'ajukan konsultasi', 'cara konsultasi', 'alur pengajuan konsultasi', 'sahabat hukum',
+            'jam kerja', 'jadwal operasional', 'operasional kantor', 'jadwal kantor',
         ];
 
         foreach ($internalKeywords as $kw) {

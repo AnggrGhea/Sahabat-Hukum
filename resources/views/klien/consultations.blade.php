@@ -54,20 +54,36 @@
             <tbody>
                 @forelse($consultations as $item)
                 @php
-                    $badgeClass = match($item->status) {
-                        'Dijadwalkan' => 'badge-blue',
-                        'Selesai'     => 'badge-gray',
-                        'Dibatalkan'  => 'badge-red',
-                        default       => 'badge-yellow',
-                    };
+                    if ($item->status === 'Menunggu') {
+                        $badgeClass = $item->lawyer_id ? 'badge-blue' : 'badge-yellow';
+                        $statusLabel = $item->lawyer_id ? 'Advokat Ditetapkan' : 'Menunggu Penetapan Advokat';
+                    } elseif ($item->status === 'Dijadwalkan') {
+                        $badgeClass = 'badge-blue';
+                        $statusLabel = 'Dijadwalkan';
+                    } elseif ($item->status === 'Selesai') {
+                        $badgeClass = 'badge-gray';
+                        $statusLabel = 'Selesai';
+                    } elseif ($item->status === 'Dibatalkan') {
+                        $badgeClass = 'badge-red';
+                        $statusLabel = 'Dibatalkan';
+                    } else {
+                        $badgeClass = 'badge-yellow';
+                        $statusLabel = $item->status;
+                    }
                 @endphp
                 <tr>
                     <td class="td-bold">{{ $item->title }}</td>
-                    <td>{{ $item->lawyer?->name ?? '—' }}</td>
+                    <td>
+                        @if($item->lawyer)
+                            <span style="font-weight:500; color:#1e293b;">{{ $item->lawyer->name }}</span>
+                        @else
+                            <span style="color:#d97706; font-size:0.78rem; font-weight:600;">Menunggu Admin</span>
+                        @endif
+                    </td>
                     <td>{{ \Carbon\Carbon::parse($item->created_at)->locale('id')->isoFormat('D MMM YYYY') }}</td>
                     <td>{{ $item->scheduled_at ? \Carbon\Carbon::parse($item->scheduled_at)->locale('id')->isoFormat('D MMM YYYY, HH.mm') . ' WIB' : '—' }}</td>
                     <td>{{ $item->problem_type }}</td>
-                    <td><span class="badge {{ $badgeClass }}">{{ $item->status }}</span></td>
+                    <td><span class="badge {{ $badgeClass }}">{{ $statusLabel }}</span></td>
                     <td>
                         <a href="{{ route('klien.consultations.show', $item->id) }}" class="link-btn">
                             Lihat Detail
@@ -92,23 +108,50 @@
 {{-- Detail Card --}}
 @if($consultation)
 <div class="card" style="margin-top:16px;">
-    <div class="card-header">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
         <div class="card-title">Detail: {{ $consultation->title }}</div>
-        @php
-            $detailBadge = match($consultation->status) {
-                'Dijadwalkan' => 'badge-blue',
-                'Selesai'     => 'badge-gray',
-                'Dibatalkan'  => 'badge-red',
-                default       => 'badge-yellow',
-            };
-        @endphp
-        <span class="badge {{ $detailBadge }}">{{ $consultation->status }}</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+            @php
+                if ($consultation->status === 'Menunggu') {
+                    $detailBadge = $consultation->lawyer_id ? 'badge-blue' : 'badge-yellow';
+                    $detailStatusLabel = $consultation->lawyer_id ? 'Advokat Ditetapkan' : 'Menunggu Penetapan Advokat';
+                } elseif ($consultation->status === 'Dijadwalkan') {
+                    $detailBadge = 'badge-blue';
+                    $detailStatusLabel = 'Dijadwalkan';
+                } elseif ($consultation->status === 'Selesai') {
+                    $detailBadge = 'badge-gray';
+                    $detailStatusLabel = 'Selesai';
+                } elseif ($consultation->status === 'Dibatalkan') {
+                    $detailBadge = 'badge-red';
+                    $detailStatusLabel = 'Dibatalkan';
+                } else {
+                    $detailBadge = 'badge-yellow';
+                    $detailStatusLabel = $consultation->status;
+                }
+            @endphp
+            <span class="badge {{ $detailBadge }}">{{ $detailStatusLabel }}</span>
+            @if($consultation->conversation)
+                <a href="{{ route('klien.chat', ['conversation_id' => $consultation->conversation->id]) }}"
+                   class="btn btn-primary"
+                   style="padding:6px 12px; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px; background:#0b1a30; border-color:#0b1a30;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    Buka Percakapan
+                </a>
+            @endif
+        </div>
     </div>
     <div class="card-body" style="padding: 20px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
             <div>
                 <div style="font-size:.75rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">Data Konsultasi</div>
-                <div style="margin-bottom:8px;"><span style="font-size:.75rem;color:#94a3b8;display:block;">Advokat</span><span style="font-size:.875rem;font-weight:500;color:#1e293b;">{{ $consultation->lawyer?->name ?? '—' }}</span></div>
+                <div style="margin-bottom:8px;">
+                    <span style="font-size:.75rem;color:#94a3b8;display:block;">Advokat Penanggung Jawab</span>
+                    <span style="font-size:.875rem;font-weight:600;color:#1e293b;">
+                        {{ $consultation->lawyer?->name ?? 'Menunggu penetapan oleh Admin' }}
+                    </span>
+                </div>
                 <div style="margin-bottom:8px;"><span style="font-size:.75rem;color:#94a3b8;display:block;">Tanggal Pengajuan</span><span style="font-size:.875rem;font-weight:500;color:#1e293b;">{{ \Carbon\Carbon::parse($consultation->created_at)->locale('id')->isoFormat('D MMM YYYY') }}</span></div>
                 <div style="margin-bottom:8px;"><span style="font-size:.75rem;color:#94a3b8;display:block;">Jadwal</span><span style="font-size:.875rem;font-weight:500;color:#1e293b;">{{ $consultation->scheduled_at ? \Carbon\Carbon::parse($consultation->scheduled_at)->locale('id')->isoFormat('D MMM YYYY, HH.mm') . ' WIB' : 'Belum dijadwalkan' }}</span></div>
                 <div style="margin-bottom:8px;"><span style="font-size:.75rem;color:#94a3b8;display:block;">Jenis Masalah</span><span style="font-size:.875rem;font-weight:500;color:#1e293b;">{{ $consultation->problem_type }}</span></div>
@@ -154,7 +197,7 @@
                 <textarea name="description" rows="5" required placeholder="Ceritakan permasalahan Anda secara detail..." style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:9px 12px;font-size:.875rem;box-sizing:border-box;line-height:1.5;"></textarea>
             </div>
             <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:12px;margin-bottom:20px;font-size:.8rem;color:#92400e;">
-                <strong>Catatan:</strong> Setelah pengajuan diterima, advokat akan menghubungi Anda untuk menjadwalkan waktu konsultasi.
+                <strong>Catatan:</strong> Setelah pengajuan dikirim, Admin akan meninjau dan menetapkan Advokat penanggung jawab. Percakapan akan aktif setelah Advokat ditetapkan.
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end;">
                 <button type="button" onclick="document.getElementById('modal-ajukan').style.display='none'" style="padding:9px 20px;border:1px solid #e2e8f0;border-radius:8px;font-size:.875rem;cursor:pointer;background:#fff;color:#374151;">Batal</button>

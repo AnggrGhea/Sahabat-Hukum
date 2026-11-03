@@ -75,6 +75,16 @@ class AuthController extends Controller
             'phone' => $request->phone,
         ]);
 
+        // Notify admins
+        try {
+            $admins = User::where('role', 'admin')->get();
+            if ($admins->isNotEmpty()) {
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\NewClientRegisteredNotification($user));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify admins on client registration: " . $e->getMessage());
+        }
+
         return redirect()->route('login')->with([
             'success' => 'Pendaftaran berhasil! Silakan masuk dengan email dan kata sandi Anda.',
             'registered_email' => $request->email,

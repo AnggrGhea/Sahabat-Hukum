@@ -6,6 +6,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * @deprecated Digantikan oleh Google Search Grounding resmi via GeminiService.
+ * Dipertahankan untuk kebutuhan backward-compatibility dan kemudahan rollback.
+ */
 class JdihBpkService
 {
     protected string $baseUrl = 'https://peraturan.bpk.go.id';

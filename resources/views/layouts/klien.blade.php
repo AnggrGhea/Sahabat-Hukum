@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Beranda') — Sahabat Hukum</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/klien.css') }}">
@@ -78,22 +79,35 @@
                 Jadwal
             </a>
 
+            @php
+                $unreadChatKlien = auth()->check() ? \App\Models\Message::whereHas('conversation', function($q) {
+                    $q->where('client_id', auth()->id());
+                })->where('sender_id', '!=', auth()->id())->where('is_read', false)->count() : 0;
+            @endphp
             <a href="{{ route('klien.chat') }}"
                class="nav-item {{ request()->routeIs('klien.chat*') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                 </svg>
                 Percakapan
+                @if($unreadChatKlien > 0)
+                    <span class="nav-badge" style="background:#ef4444; color:#fff;">{{ $unreadChatKlien }}</span>
+                @endif
             </a>
 
-            <a href="#"
+            @php
+                $unreadNotifKlien = auth()->check() ? auth()->user()->unreadNotifications->count() : 0;
+            @endphp
+            <a href="{{ route('klien.notifications') }}"
                class="nav-item {{ request()->routeIs('klien.notifications*') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
                 Pemberitahuan
-                <span class="nav-badge">3</span>
+                @if($unreadNotifKlien > 0)
+                    <span class="nav-badge">{{ $unreadNotifKlien }}</span>
+                @endif
             </a>
 
             <a href="{{ route('klien.assistant') }}"
@@ -135,16 +149,15 @@
         <header class="app-header">
             <div class="header-left">@yield('header-title', 'Beranda')</div>
             <div class="header-right">
-                <button class="notif-btn" title="Pemberitahuan">
+                <a href="{{ route('klien.notifications') }}" class="notif-btn" title="Pemberitahuan">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                     </svg>
-                    @php $unreadCount = auth()->check() ? auth()->user()->unreadNotifications->count() : 0; @endphp
-                    @if($unreadCount > 0)
-                    <span class="notif-badge">{{ $unreadCount }}</span>
+                    @if($unreadNotifKlien > 0)
+                    <span class="notif-badge">{{ $unreadNotifKlien }}</span>
                     @endif
-                </button>
+                </a>
                 <div class="header-user">
                     <div class="header-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'K', 0, 1)) }}</div>
                     <div class="header-user-info">
@@ -162,6 +175,9 @@
 
     </div>{{-- end main-wrapper --}}
 </div>{{-- end app-layout --}}
+
+<script src="{{ asset('js/jspdf.umd.min.js') }}"></script>
+@include('components.document-scanner-modal')
 
 @stack('scripts')
 </body>

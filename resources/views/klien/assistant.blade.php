@@ -100,25 +100,53 @@
                         <div style="font-size:.75rem;color:#94a3b8;font-weight:600;margin-bottom:4px;">Asisten Hukum • {{ $msg['time'] ?? '' }}</div>
                         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px 12px 12px 2px;padding:16px 20px;color:#334155;line-height:1.65;font-size:.875rem;max-width:720px;box-shadow:0 1px 2px rgba(0,0,0,0.03);white-space:pre-wrap;">{!! nl2br(e($msg['content'])) !!}</div>
                         @if(!empty($msg['sources']))
-                        <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                            <span style="font-size:.7rem;color:#64748b;font-weight:600;">Sumber Hukum:</span>
+                        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0;max-width:720px;">
+                            <div style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Rujukan / Sumber Hukum:</div>
+                            <div style="display:flex;flex-direction:column;gap:6px;">
                             @foreach($msg['sources'] as $src)
                                 @php
                                     $title = is_array($src) ? ($src['title'] ?? 'Sumber Hukum') : $src;
                                     $url = is_array($src) ? ($src['url'] ?? null) : null;
+                                    $institution = is_array($src) ? ($src['institution'] ?? null) : null;
+                                    $status = is_array($src) ? ($src['status'] ?? null) : null;
+
+                                    $badgeBg = '#f1f5f9';
+                                    $badgeColor = '#334155';
+                                    $badgeBorder = '#cbd5e1';
+
+                                    if ($status === 'Terverifikasi Resmi') {
+                                        $badgeBg = '#ecfdf5';
+                                        $badgeColor = '#065f46';
+                                        $badgeBorder = '#a7f3d0';
+                                    } elseif ($status === 'Discovery / Perlu Verifikasi') {
+                                        $badgeBg = '#fffbeb';
+                                        $badgeColor = '#92400e';
+                                        $badgeBorder = '#fde68a';
+                                    } elseif ($status === 'Sumber Pemerintah Pendukung') {
+                                        $badgeBg = '#eff6ff';
+                                        $badgeColor = '#1e40af';
+                                        $badgeBorder = '#bfdbfe';
+                                    }
                                 @endphp
-                                @if($url)
-                                <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
-                                   style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                                    {{ $title }}
-                                </a>
-                                @else
-                                <span style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;">
-                                    {{ $title }}
-                                </span>
-                                @endif
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f8fafc;border:1px solid {{ $badgeBorder }};border-radius:8px;padding:6px 12px;font-size:.75rem;">
+                                    <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+                                        @if($status)
+                                        <span style="font-size:.65rem;background:{{ $badgeBg }};color:{{ $badgeColor }};border:1px solid {{ $badgeBorder }};padding:2px 6px;border-radius:4px;font-weight:700;flex-shrink:0;">{{ $status }}</span>
+                                        @endif
+                                        <span style="font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ $title }}">{{ $title }}</span>
+                                        @if($institution)
+                                        <span style="font-size:.68rem;color:#64748b;flex-shrink:0;">({{ $institution }})</span>
+                                        @endif
+                                    </div>
+                                    @if($url)
+                                    <a href="{{ $url }}" target="_blank" rel="noopener noreferrer" style="font-size:.72rem;background:#1a2744;color:#fff;border-radius:4px;padding:3px 8px;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;flex-shrink:0;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                        Lihat Sumber
+                                    </a>
+                                    @endif
+                                </div>
                             @endforeach
+                            </div>
                         </div>
                         @endif
                     </div>
@@ -266,19 +294,58 @@ document.addEventListener('DOMContentLoaded', function() {
         let sourcesHtml = '';
         if (sources && sources.length > 0) {
             sourcesHtml = `
-                <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                    <span style="font-size:.7rem;color:#64748b;font-weight:600;">Sumber Hukum:</span>
-                    ${sources.map(s => {
-                        const title = escapeHtml(s.title || s);
-                        const url = s.url || null;
-                        if (url) {
-                            return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                                ${title}
-                            </a>`;
-                        }
-                        return `<span style="font-size:.72rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:2px 10px;font-weight:500;">${title}</span>`;
-                    }).join('')}
+                <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0;max-width:720px;">
+                    <div style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Rujukan / Sumber Hukum:</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        ${sources.map(s => {
+                            const title = escapeHtml(s.title || (typeof s === 'string' ? s : 'Sumber Hukum'));
+                            const url = s.url || null;
+                            const institution = s.institution ? escapeHtml(s.institution) : '';
+                            const status = s.status || null;
+
+                            let badgeBg = '#f1f5f9';
+                            let badgeColor = '#334155';
+                            let badgeBorder = '#cbd5e1';
+
+                            if (status === 'Terverifikasi Resmi') {
+                                badgeBg = '#ecfdf5';
+                                badgeColor = '#065f46';
+                                badgeBorder = '#a7f3d0';
+                            } else if (status === 'Discovery / Perlu Verifikasi') {
+                                badgeBg = '#fffbeb';
+                                badgeColor = '#92400e';
+                                badgeBorder = '#fde68a';
+                            } else if (status === 'Sumber Pemerintah Pendukung') {
+                                badgeBg = '#eff6ff';
+                                badgeColor = '#1e40af';
+                                badgeBorder = '#bfdbfe';
+                            }
+
+                            const statusHtml = status
+                                ? `<span style="font-size:.65rem;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeBorder};padding:2px 6px;border-radius:4px;font-weight:700;flex-shrink:0;">${escapeHtml(status)}</span>`
+                                : '';
+
+                            const instHtml = institution ? `<span style="font-size:.68rem;color:#64748b;flex-shrink:0;">(${institution})</span>` : '';
+
+                            const actionBtn = url
+                                ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="font-size:.72rem;background:#1a2744;color:#fff;border-radius:4px;padding:3px 8px;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;flex-shrink:0;">
+                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                     Lihat Sumber
+                                   </a>`
+                                : '';
+
+                            return `
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f8fafc;border:1px solid ${badgeBorder};border-radius:8px;padding:6px 12px;font-size:.75rem;">
+                                    <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+                                        ${statusHtml}
+                                        <span style="font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${title}">${title}</span>
+                                        ${instHtml}
+                                    </div>
+                                    ${actionBtn}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
             `;
         }

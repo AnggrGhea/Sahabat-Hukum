@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sahabat Hukum - Advokat Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -50,11 +51,25 @@
                 <a href="{{ route('advokat.schedule') }}" class="nav-item {{ request()->routeIs('advokat.schedule*') ? 'active' : '' }}">
                     <i data-lucide="calendar"></i> Jadwal
                 </a>
+                @php
+                    $unreadChatAdv = Auth::check() ? \App\Models\Message::whereHas('conversation', function($q) {
+                        $q->where('lawyer_id', Auth::id());
+                    })->where('sender_id', '!=', Auth::id())->where('is_read', false)->count() : 0;
+                @endphp
                 <a href="{{ route('advokat.chat') }}" class="nav-item {{ request()->routeIs('advokat.chat*') ? 'active' : '' }}">
                     <i data-lucide="message-circle"></i> Percakapan
+                    @if($unreadChatAdv > 0)
+                        <span class="nav-item-badge" style="background:#ef4444; color:#fff; font-weight:700;">{{ $unreadChatAdv }}</span>
+                    @endif
                 </a>
+                @php
+                    $unreadCountAdv = Auth::check() ? Auth::user()->unreadNotifications->count() : 0;
+                @endphp
                 <a href="#" class="nav-item">
-                    <i data-lucide="bell"></i> Pemberitahuan <span class="nav-item-badge">4</span>
+                    <i data-lucide="bell"></i> Pemberitahuan
+                    @if($unreadCountAdv > 0)
+                        <span class="nav-item-badge">{{ $unreadCountAdv }}</span>
+                    @endif
                 </a>
             </nav>
             
@@ -115,6 +130,8 @@
     <script>
       lucide.createIcons();
     </script>
+    <script src="{{ asset('js/jspdf.umd.min.js') }}"></script>
+    @include('components.document-scanner-modal')
     @stack('scripts')
 </body>
 </html>

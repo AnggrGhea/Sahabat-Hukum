@@ -9,6 +9,7 @@ use App\Http\Controllers\LegalAssistantController;
 
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\LandingPageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,10 +17,8 @@ use App\Http\Controllers\ConversationController;
 |--------------------------------------------------------------------------
 */
 
-// Redirect root to login if not authenticated
-Route::get('/', function () {
-    return redirect('/login');
-});
+// Public Landing Page
+Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 
 
 
@@ -44,8 +43,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/clients', [AdminController::class, 'clients'])->name('admin.clients');
     Route::get('/lawyers', [AdminController::class, 'lawyers'])->name('admin.lawyers');
+    Route::post('/lawyers', [AdminController::class, 'storeLawyer'])->name('admin.lawyers.store');
     Route::get('/cases', [AdminController::class, 'cases'])->name('admin.cases');
     Route::get('/consultations', [AdminController::class, 'consultations'])->name('admin.consultations');
+    Route::post('/consultations/{id}/assign-lawyer', [AdminController::class, 'assignLawyer'])->name('admin.consultations.assign');
     Route::get('/documents', [AdminController::class, 'documents'])->name('admin.documents');
     Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
     Route::get('/knowledge', [AdminController::class, 'knowledge'])->name('admin.knowledge');
@@ -55,6 +56,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::delete('/knowledge/{id}', [AdminController::class, 'destroyKnowledge'])->name('admin.knowledge.destroy');
     Route::get('/reports', [AdminController::class, 'reports'])->name('admin.reports');
     Route::get('/settings', [AdminController::class, 'settings'])->name('admin.settings');
+
+    // Pemberitahuan
+    Route::get('/pemberitahuan', [AdminController::class, 'notifications'])->name('admin.notifications');
+    Route::get('/pemberitahuan/{id}/open', [AdminController::class, 'openNotification'])->name('admin.notifications.open');
+    Route::post('/pemberitahuan/{id}/read', [AdminController::class, 'markNotificationAsRead'])->name('admin.notifications.read');
+    Route::post('/pemberitahuan/mark-all-read', [AdminController::class, 'markAllNotificationsAsRead'])->name('admin.notifications.mark-all-read');
 });
 
 // ─── Advokat Routes ────────────────────────────────────────────────────────
@@ -120,4 +127,10 @@ Route::middleware(['auth', 'role:klien'])->prefix('klien')->group(function () {
     Route::get('/percakapan', [ConversationController::class, 'index'])->name('klien.chat');
     Route::post('/percakapan/{id}/messages', [ConversationController::class, 'sendMessage'])->name('klien.chat.send');
     Route::get('/percakapan/{id}/messages', [ConversationController::class, 'getMessages'])->name('klien.chat.messages');
+
+    // Pemberitahuan
+    Route::get('/pemberitahuan', [ClientController::class, 'notifications'])->name('klien.notifications');
+    Route::get('/pemberitahuan/{id}/open', [ClientController::class, 'openNotification'])->name('klien.notifications.open');
+    Route::post('/pemberitahuan/{id}/read', [ClientController::class, 'markNotificationAsRead'])->name('klien.notifications.read');
+    Route::post('/pemberitahuan/mark-all-read', [ClientController::class, 'markAllNotificationsAsRead'])->name('klien.notifications.mark-all-read');
 });
