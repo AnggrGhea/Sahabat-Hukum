@@ -36,6 +36,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::middleware('auth')->group(function () {
     Route::get('/documents/{id}/view', [DocumentController::class, 'view'])->name('documents.view');
     Route::get('/documents/{id}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::get('/documents/{id}/versions/{versionId}/download', [DocumentController::class, 'downloadVersion'])->name('documents.version.download');
 });
 
 // ─── Admin Routes ──────────────────────────────────────────────────────────
@@ -85,6 +86,16 @@ Route::middleware(['auth', 'role:advokat'])->prefix('advokat')->group(function (
     Route::post('/dokumen/{id}/verifikasi', [AdvokatController::class, 'verifyDocument'])->name('advokat.documents.verify');
     Route::post('/dokumen/{id}/tolak', [AdvokatController::class, 'rejectDocument'])->name('advokat.documents.reject');
 
+    // Kolaborasi Dokumen Perkara & Manajemen Tim Advokat
+    Route::get('/perkara/{id}/kolaborasi', [AdvokatController::class, 'caseCollaboration'])->name('advokat.cases.collaboration');
+    Route::post('/perkara/{id}/kolaborasi/dokumen', [AdvokatController::class, 'storeCollaborationDocument'])->name('advokat.cases.collaboration.document');
+    Route::post('/kolaborasi/dokumen/{id}/versi', [AdvokatController::class, 'uploadDocumentVersion'])->name('advokat.collaboration.version');
+    Route::post('/kolaborasi/dokumen/{id}/komentar', [AdvokatController::class, 'addDocumentComment'])->name('advokat.collaboration.comment');
+    Route::post('/kolaborasi/dokumen/{id}/status', [AdvokatController::class, 'updateDocumentCollaborationStatus'])->name('advokat.collaboration.status');
+    Route::post('/kolaborasi/dokumen/{id}/final', [AdvokatController::class, 'finalizeDocument'])->name('advokat.collaboration.finalize');
+    Route::post('/perkara/{id}/tim', [AdvokatController::class, 'addTeamMember'])->name('advokat.cases.team.add');
+    Route::delete('/perkara/{id}/tim/{userId}', [AdvokatController::class, 'removeTeamMember'])->name('advokat.cases.team.remove');
+
     // Klien
     Route::get('/klien', [AdvokatController::class, 'clients'])->name('advokat.clients');
     Route::get('/klien/{id}', [AdvokatController::class, 'clientDetail'])->name('advokat.clients.show');
@@ -101,6 +112,12 @@ Route::middleware(['auth', 'role:advokat'])->prefix('advokat')->group(function (
     Route::get('/percakapan', [ConversationController::class, 'index'])->name('advokat.chat');
     Route::post('/percakapan/{id}/messages', [ConversationController::class, 'sendMessage'])->name('advokat.chat.send');
     Route::get('/percakapan/{id}/messages', [ConversationController::class, 'getMessages'])->name('advokat.chat.messages');
+
+    // Pemberitahuan
+    Route::get('/pemberitahuan', [AdvokatController::class, 'notifications'])->name('advokat.notifications');
+    Route::get('/pemberitahuan/{id}/open', [AdvokatController::class, 'openNotification'])->name('advokat.notifications.open');
+    Route::post('/pemberitahuan/{id}/read', [AdvokatController::class, 'markNotificationAsRead'])->name('advokat.notifications.read');
+    Route::post('/pemberitahuan/mark-all-read', [AdvokatController::class, 'markAllNotificationsAsRead'])->name('advokat.notifications.mark-all-read');
 });
 
 // ─── Klien Routes ──────────────────────────────────────────────────────────

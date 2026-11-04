@@ -41,8 +41,8 @@
                         <div style="font-weight: 500; color: var(--color-gray-dark);">{{ $case->case_number }}</div>
                         <div style="font-size: 0.75rem; color: var(--color-gray-text);">{{ $case->title }}</div>
                     </td>
-                    <td>{{ $case->client->name }}</td>
-                    <td>{{ $case->lawyer->name }}</td>
+                    <td>{{ $case->client?->name ?? '—' }}</td>
+                    <td>{{ $case->lawyer?->name ?? '—' }}</td>
                     <td>
                         <div>{{ $case->case_type }}</div>
                         <div style="font-size: 0.75rem; color: var(--color-gray-text);">

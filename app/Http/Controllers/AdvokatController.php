@@ -10,8 +10,16 @@ use App\Models\LegalCase;
 use App\Models\CaseProgress;
 use App\Models\Document;
 use App\Models\DocumentRequest;
+use App\Models\DocumentVersion;
+use App\Models\DocumentComment;
+use App\Models\DocumentAuditLog;
+use App\Models\CaseLawyer;
 use App\Models\Schedule;
 use App\Models\User;
+use App\Notifications\DocumentCollaborationNotification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AdvokatController extends Controller
 {
@@ -150,6 +158,10 @@ class AdvokatController extends Controller
             'status' => 'Selesai',
         ]);
 
+        if ($consultation->client) {
+            $consultation->client->notify(new \App\Notifications\ConsultationCompletedClientNotification($consultation));
+        }
+
         return redirect()->route('advokat.consultations.show', $id)
             ->with('success', 'Hasil konsultasi berhasil dicatat.');
     }
@@ -160,7 +172,11 @@ class AdvokatController extends Controller
         $lawyer = Auth::user();
         $filter = $request->query('status', 'Semua');
 
-        $query = LegalCase::where('lawyer_id', $lawyer->id)->with('client');
+        $query = LegalCase::where(function ($q) use ($lawyer) {
+            $q->where('lawyer_id', $lawyer->id)
+              ->orWhereHas('caseLawyers', fn($sq) => $sq->where('user_id', $lawyer->id));
+        })->with(['client', 'teamMembers']);
+
         if ($filter !== 'Semua') {
             $query->where('status', $filter);
         }
@@ -174,17 +190,26 @@ class AdvokatController extends Controller
             ->get();
 
         $activeId = $request->query('id', $cases->first()?->id);
-        $case     = LegalCase::with([
-            'client',
-            'lawyer',
-            'progress',
-            'documents' => function ($q) {
-                $q->with('uploader', 'verifier')->orderBy('created_at', 'desc');
-            },
-            'documentRequests' => function ($q) {
-                $q->with('client')->orderBy('created_at', 'desc');
-            },
-        ])->where('lawyer_id', $lawyer->id)->find($activeId);
+        $case     = null;
+
+        if ($activeId) {
+            $case = LegalCase::with([
+                'client',
+                'lawyer',
+                'teamMembers',
+                'caseLawyers.lawyer',
+                'progress',
+                'documents' => function ($q) {
+                    $q->with('uploader', 'verifier')->orderBy('created_at', 'desc');
+                },
+                'documentRequests' => function ($q) {
+                    $q->with('client')->orderBy('created_at', 'desc');
+                },
+            ])->where(function ($q) use ($lawyer) {
+                $q->where('lawyer_id', $lawyer->id)
+                  ->orWhereHas('caseLawyers', fn($sq) => $sq->where('user_id', $lawyer->id));
+            })->find($activeId);
+        }
 
         return view('advokat.cases', compact('cases', 'case', 'filter', 'availableConsultations'));
     }
@@ -195,6 +220,8 @@ class AdvokatController extends Controller
         $case   = LegalCase::with([
             'client',
             'lawyer',
+            'teamMembers',
+            'caseLawyers.lawyer',
             'progress',
             'documents' => function ($q) {
                 $q->with('uploader', 'verifier')->orderBy('created_at', 'desc');
@@ -202,10 +229,16 @@ class AdvokatController extends Controller
             'documentRequests' => function ($q) {
                 $q->with('client')->orderBy('created_at', 'desc');
             },
-        ])->where('lawyer_id', $lawyer->id)->findOrFail($id);
+        ])->where(function ($q) use ($lawyer) {
+            $q->where('lawyer_id', $lawyer->id)
+              ->orWhereHas('caseLawyers', fn($sq) => $sq->where('user_id', $lawyer->id));
+        })->findOrFail($id);
+
         $filter = 'Semua';
-        $cases  = LegalCase::where('lawyer_id', $lawyer->id)
-            ->with('client')->orderBy('created_at', 'desc')->get();
+        $cases  = LegalCase::where(function ($q) use ($lawyer) {
+            $q->where('lawyer_id', $lawyer->id)
+              ->orWhereHas('caseLawyers', fn($sq) => $sq->where('user_id', $lawyer->id));
+        })->with(['client', 'teamMembers'])->orderBy('created_at', 'desc')->get();
 
         $availableConsultations = Consultation::where('lawyer_id', $lawyer->id)
             ->whereNotIn('status', ['Dibatalkan'])
@@ -223,7 +256,10 @@ class AdvokatController extends Controller
         $request = $request ?? request();
         $lawyer = Auth::user();
 
-        $cases = LegalCase::where('lawyer_id', $lawyer->id)
+        $cases = LegalCase::where(function ($q) use ($lawyer) {
+            $q->where('lawyer_id', $lawyer->id)
+              ->orWhereHas('caseLawyers', fn($sq) => $sq->where('user_id', $lawyer->id));
+        })
             ->with('client')
             ->orderBy('started_at', 'desc')
             ->get();
@@ -236,6 +272,7 @@ class AdvokatController extends Controller
 
         $query = Document::where(function ($q) use ($lawyer, $caseIds) {
             $q->where('lawyer_id', $lawyer->id)
+              ->orWhere('uploaded_by', $lawyer->id)
               ->orWhereIn('case_id', $caseIds);
         })->with(['case.client', 'client', 'uploader', 'verifier'])
           ->orderBy('created_at', 'desc');
@@ -489,8 +526,9 @@ class AdvokatController extends Controller
         );
 
         // Notify Client
-        if ($document->client) {
-            $document->client->notify(new \App\Notifications\DocumentVerifiedNotification($document));
+        $targetClient = $document->client ?? $document->case?->client;
+        if ($targetClient) {
+            $targetClient->notify(new \App\Notifications\DocumentVerifiedNotification($document));
         }
 
         return redirect()->back()->with('success', 'Dokumen berhasil diverifikasi.');
@@ -529,8 +567,9 @@ class AdvokatController extends Controller
         );
 
         // Notify Client
-        if ($document->client) {
-            $document->client->notify(new \App\Notifications\DocumentRejectedNotification($document, $request->rejection_reason));
+        $targetClient = $document->client ?? $document->case?->client;
+        if ($targetClient) {
+            $targetClient->notify(new \App\Notifications\DocumentRejectedNotification($document, $request->rejection_reason));
         }
 
         return redirect()->back()->with('success', 'Dokumen telah ditolak dan klien telah menerima notifikasi perbaikan.');
@@ -776,5 +815,664 @@ class AdvokatController extends Controller
             'schedules',
             'upcomingSchedules'
         ));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PEMBERITAHUAN / NOTIFIKASI ADVOKAT
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function notifications(Request $request)
+    {
+        $lawyer = Auth::user();
+        $filter = $request->query('filter', 'all');
+
+        $query = $lawyer->notifications();
+
+        if ($filter === 'unread') {
+            $query->whereNull('read_at');
+        }
+
+        $notifications = $query->paginate(15)->withQueryString();
+        $unreadCount   = $lawyer->unreadNotifications()->count();
+        $totalCount    = $lawyer->notifications()->count();
+
+        return view('advokat.notifications', compact('notifications', 'filter', 'unreadCount', 'totalCount'));
+    }
+
+    public function openNotification($id)
+    {
+        $notification = Auth::user()->notifications()->findOrFail($id);
+
+        if (is_null($notification->read_at)) {
+            $notification->markAsRead();
+        }
+
+        $actionUrl = $notification->data['action_url'] ?? route('advokat.notifications');
+        return redirect($actionUrl);
+    }
+
+    public function markNotificationAsRead(Request $request, $id)
+    {
+        $notification = Auth::user()->notifications()->findOrFail($id);
+        $notification->markAsRead();
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Notifikasi berhasil ditandai sudah dibaca.');
+    }
+
+    public function markAllNotificationsAsRead(Request $request)
+    {
+        Auth::user()->unreadNotifications->markAsRead();
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Semua notifikasi berhasil ditandai sudah dibaca.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // KOLABORASI DOKUMEN PERKARA & MANAJEMEN TIM ADVOKAT
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Ruang Kerja Kolaborasi Dokumen Perkara
+     */
+    public function caseCollaboration(Request $request, $id)
+    {
+        $lawyer = Auth::user();
+        $case   = LegalCase::with([
+            'client',
+            'lawyer',
+            'teamMembers',
+            'caseLawyers.lawyer',
+            'caseLawyers.assignedByUser',
+        ])->findOrFail($id);
+
+        if (!$case->isLawyerAuthorized($lawyer)) {
+            abort(403, 'Akses ditolak. Anda bukan bagian dari tim advokat yang berwenang menangani perkara ini.');
+        }
+
+        // Query Dokumen Perkara
+        $docQuery = Document::where('case_id', $case->id)
+            ->with([
+                'uploader',
+                'finalizer',
+                'documentVersions.uploader',
+                'comments.user',
+                'comments.version',
+            ])
+            ->orderBy('updated_at', 'desc');
+
+        // Filter status kolaborasi
+        $statusFilter = $request->query('status', 'all');
+        if ($statusFilter && $statusFilter !== 'all') {
+            $docQuery->where('collaboration_status', $statusFilter);
+        }
+
+        // Filter tipe dokumen
+        $typeFilter = $request->query('type', 'all');
+        if ($typeFilter && $typeFilter !== 'all') {
+            $docQuery->where('document_type', $typeFilter);
+        }
+
+        // Filter visibilitas internal / eksternal
+        $visibilityFilter = $request->query('visibility', 'all');
+        if ($visibilityFilter === 'internal') {
+            $docQuery->where('is_internal', true);
+        } elseif ($visibilityFilter === 'klien') {
+            $docQuery->where('is_internal', false);
+        }
+
+        // Pencarian dokumen
+        $search = $request->query('q');
+        if ($search) {
+            $docQuery->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('document_type', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        $documents = $docQuery->get();
+
+        // Dokumen aktif untuk panel detail / inspeksi
+        $activeDocId = $request->query('doc_id', $documents->first()?->id);
+        $activeDocument = null;
+        if ($activeDocId) {
+            $activeDocument = $documents->firstWhere('id', $activeDocId);
+        }
+
+        // Statistik dokumen kolaborasi
+        $allDocs = Document::where('case_id', $case->id)->get();
+        $stats = [
+            'total'      => $allDocs->count(),
+            'draf'       => $allDocs->where('collaboration_status', 'Draf')->count(),
+            'revisi'     => $allDocs->where('collaboration_status', 'Dalam Revisi')->count(),
+            'review'     => $allDocs->where('collaboration_status', 'Menunggu Persetujuan')->count(),
+            'final'      => $allDocs->where('collaboration_status', 'Final')->count(),
+            'internal'   => $allDocs->where('is_internal', true)->count(),
+            'shared'     => $allDocs->where('is_internal', false)->count(),
+        ];
+
+        // Daftar advokat yang dapat ditambahkan ke tim perkara (hanya untuk lead lawyer/admin)
+        $existingTeamIds = array_merge([$case->lawyer_id], $case->caseLawyers->pluck('user_id')->toArray());
+        $availableLawyers = User::where('role', 'advokat')
+            ->whereNotIn('id', $existingTeamIds)
+            ->where('status', 'aktif')
+            ->orderBy('name')
+            ->get();
+
+        // Riwayat aktivitas perkara
+        $auditLogs = DocumentAuditLog::where('case_id', $case->id)
+            ->with(['user', 'document'])
+            ->orderBy('created_at', 'desc')
+            ->take(25)
+            ->get();
+
+        $isLead = $case->isLeadLawyer($lawyer);
+
+        return view('advokat.collaboration', compact(
+            'case',
+            'documents',
+            'activeDocument',
+            'stats',
+            'availableLawyers',
+            'auditLogs',
+            'isLead',
+            'statusFilter',
+            'typeFilter',
+            'visibilityFilter',
+            'search'
+        ));
+    }
+
+    /**
+     * Unggah Dokumen Kolaborasi Baru
+     */
+    public function storeCollaborationDocument(Request $request, $caseId)
+    {
+        $lawyer = Auth::user();
+        $case   = LegalCase::findOrFail($caseId);
+
+        if (!$case->isLawyerAuthorized($lawyer)) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $request->validate([
+            'name'          => 'required|string|max:255',
+            'document_type' => 'required|string|max:100',
+            'description'   => 'nullable|string|max:1000',
+            'revision_notes'=> 'nullable|string|max:1000',
+            'is_internal'   => 'required|in:1,0',
+            'file'          => [
+                'required',
+                'file',
+                'max:10240', // 10MB
+                function ($attribute, $value, $fail) {
+                    if (!$value || !($value instanceof \Illuminate\Http\UploadedFile)) return;
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $allowed = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'xls', 'xlsx'];
+                    if (!in_array($ext, $allowed)) {
+                        $fail('Format file tidak diizinkan. Gunakan PDF, DOC, DOCX, JPG, JPEG, PNG, XLS, atau XLSX.');
+                    }
+                },
+            ],
+        ], [
+            'name.required'          => 'Nama dokumen hukum wajib diisi.',
+            'document_type.required' => 'Jenis dokumen hukum wajib dipilih.',
+            'file.required'          => 'Berkas file dokumen wajib diunggah.',
+            'file.max'               => 'Ukuran berkas maksimal 10 MB.',
+        ]);
+
+        return DB::transaction(function () use ($request, $case, $lawyer) {
+            $file       = $request->file('file');
+            $ext        = strtolower($file->getClientOriginalExtension());
+            $uniqueName = (string) Str::uuid() . '.' . $ext;
+            $storedPath = $file->storeAs("documents/{$case->id}", $uniqueName, 'local');
+
+            $mimeType = null;
+            try {
+                $mimeType = $file->getMimeType();
+            } catch (\Throwable $e) {
+                $mimeType = $file->getClientMimeType() ?: 'application/octet-stream';
+            }
+
+            $isInternal = (bool) $request->input('is_internal', 1);
+
+            $document = Document::create([
+                'case_id'              => $case->id,
+                'client_id'            => $case->client_id,
+                'lawyer_id'            => $case->lawyer_id,
+                'uploaded_by'          => $lawyer->id,
+                'name'                 => $request->name,
+                'document_type'        => $request->document_type,
+                'description'          => $request->description,
+                'file_path'            => $storedPath,
+                'original_filename'    => $file->getClientOriginalName(),
+                'mime_type'            => $mimeType,
+                'file_size'            => $file->getSize(),
+                'version'              => 1,
+                'status'               => 'Menunggu Verifikasi',
+                'collaboration_status' => 'Draf',
+                'is_internal'          => $isInternal,
+                'is_from_lawyer'       => true,
+            ]);
+
+            DocumentVersion::create([
+                'document_id'       => $document->id,
+                'version_number'    => 1,
+                'file_path'         => $storedPath,
+                'original_filename' => $file->getClientOriginalName(),
+                'file_size'         => $file->getSize(),
+                'mime_type'         => $mimeType,
+                'uploaded_by'       => $lawyer->id,
+                'revision_notes'    => $request->revision_notes ?: 'Draf versi awal (v1).',
+                'status'            => 'Draf',
+                'is_final'          => false,
+            ]);
+
+            $visibilityText = $isInternal ? 'Internal Tim Advokat' : 'Terbuka / Dibagikan ke Klien';
+            DocumentAuditLog::record(
+                $document->id,
+                $case->id,
+                $lawyer->id,
+                'upload',
+                "Advokat ({$lawyer->name}) mengunggah dokumen baru '{$document->name}' (v1) [{$visibilityText}]."
+            );
+
+            // Notifikasi ke seluruh anggota tim perkara
+            $this->notifyAdvocateTeam(
+                $case,
+                $lawyer,
+                'new_document',
+                "Advokat {$lawyer->name} mengunggah dokumen baru '{$document->name}' (v1) pada perkara {$case->case_number}.",
+                $document
+            );
+
+            return redirect()->route('advokat.cases.collaboration', ['id' => $case->id, 'doc_id' => $document->id])
+                ->with('success', "Dokumen '{$document->name}' berhasil diunggah sebagai Draf v1.");
+        });
+    }
+
+    /**
+     * Unggah Versi Revisi Baru Dokumen
+     */
+    public function uploadDocumentVersion(Request $request, $documentId)
+    {
+        $lawyer   = Auth::user();
+        $document = Document::with('case')->findOrFail($documentId);
+        $case     = $document->case;
+
+        if (!$case || !$case->isLawyerAuthorized($lawyer)) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $request->validate([
+            'revision_notes' => 'required|string|min:4|max:1000',
+            'status'         => 'required|in:Draf,Dalam Revisi,Menunggu Persetujuan',
+            'file'           => [
+                'required',
+                'file',
+                'max:10240',
+                function ($attribute, $value, $fail) {
+                    if (!$value || !($value instanceof \Illuminate\Http\UploadedFile)) return;
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $allowed = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'xls', 'xlsx'];
+                    if (!in_array($ext, $allowed)) {
+                        $fail('Format file tidak diizinkan. Gunakan PDF, DOC, DOCX, JPG, JPEG, PNG, XLS, atau XLSX.');
+                    }
+                },
+            ],
+        ], [
+            'revision_notes.required' => 'Catatan revisi wajib diisi agar perubahan versi terdokumentasi dengan baik.',
+            'revision_notes.min'      => 'Catatan revisi minimal 4 karakter.',
+            'file.required'           => 'Berkas revisi wajib diunggah.',
+        ]);
+
+        return DB::transaction(function () use ($request, $document, $case, $lawyer) {
+            $file       = $request->file('file');
+            $ext        = strtolower($file->getClientOriginalExtension());
+            $uniqueName = (string) Str::uuid() . '.' . $ext;
+            $storedPath = $file->storeAs("documents/{$case->id}", $uniqueName, 'local');
+
+            $mimeType = null;
+            try {
+                $mimeType = $file->getMimeType();
+            } catch (\Throwable $e) {
+                $mimeType = $file->getClientMimeType() ?: 'application/octet-stream';
+            }
+
+            $currentMaxVer = (int) ($document->documentVersions()->max('version_number') ?: $document->version ?: 1);
+            $newVerNumber  = $currentMaxVer + 1;
+
+            $version = DocumentVersion::create([
+                'document_id'       => $document->id,
+                'version_number'    => $newVerNumber,
+                'file_path'         => $storedPath,
+                'original_filename' => $file->getClientOriginalName(),
+                'file_size'         => $file->getSize(),
+                'mime_type'         => $mimeType,
+                'uploaded_by'       => $lawyer->id,
+                'revision_notes'    => $request->revision_notes,
+                'status'            => $request->status,
+                'is_final'          => false,
+            ]);
+
+            // Update master pointer dokumen ke versi terbaru
+            $document->update([
+                'file_path'            => $storedPath,
+                'original_filename'    => $file->getClientOriginalName(),
+                'file_size'            => $file->getSize(),
+                'mime_type'            => $mimeType,
+                'version'              => $newVerNumber,
+                'collaboration_status' => $request->status,
+                'uploaded_by'          => $lawyer->id,
+            ]);
+
+            DocumentAuditLog::record(
+                $document->id,
+                $case->id,
+                $lawyer->id,
+                'new_version',
+                "Advokat ({$lawyer->name}) mengunggah revisi versi baru (v{$newVerNumber}) untuk '{$document->name}'. Catatan: \"{$request->revision_notes}\""
+            );
+
+            $this->notifyAdvocateTeam(
+                $case,
+                $lawyer,
+                'new_version',
+                "Advokat {$lawyer->name} mengunggah versi baru v{$newVerNumber} untuk dokumen '{$document->name}'.",
+                $document
+            );
+
+            return redirect()->route('advokat.cases.collaboration', ['id' => $case->id, 'doc_id' => $document->id])
+                ->with('success', "Versi baru (v{$newVerNumber}) berhasil diunggah dengan status '{$request->status}'.");
+        });
+    }
+
+    /**
+     * Tambah Catatan Revisi / Komentar pada Dokumen
+     */
+    public function addDocumentComment(Request $request, $documentId)
+    {
+        $lawyer   = Auth::user();
+        $document = Document::with('case')->findOrFail($documentId);
+        $case     = $document->case;
+
+        if (!$case || !$case->isLawyerAuthorized($lawyer)) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $request->validate([
+            'comment'             => 'required|string|min:2|max:2000',
+            'document_version_id' => 'nullable|exists:document_versions,id',
+        ], [
+            'comment.required' => 'Isi komentar atau catatan revisi tidak boleh kosong.',
+            'comment.min'      => 'Komentar minimal 2 karakter.',
+        ]);
+
+        $comment = DocumentComment::create([
+            'document_id'         => $document->id,
+            'document_version_id' => $request->document_version_id,
+            'user_id'             => $lawyer->id,
+            'comment'             => $request->comment,
+        ]);
+
+        $verText = $comment->version ? " pada v{$comment->version->version_number}" : "";
+        DocumentAuditLog::record(
+            $document->id,
+            $case->id,
+            $lawyer->id,
+            'comment',
+            "Advokat ({$lawyer->name}) menambahkan catatan{$verText}: \"{$request->comment}\""
+        );
+
+        $this->notifyAdvocateTeam(
+            $case,
+            $lawyer,
+            'new_comment',
+            "Advokat {$lawyer->name} memberikan komentar pada dokumen '{$document->name}'{$verText}.",
+            $document
+        );
+
+        return redirect()->route('advokat.cases.collaboration', ['id' => $case->id, 'doc_id' => $document->id])
+            ->with('success', 'Catatan revisi berhasil disimpan.');
+    }
+
+    /**
+     * Perbarui Status Kolaborasi Dokumen
+     */
+    public function updateDocumentCollaborationStatus(Request $request, $documentId)
+    {
+        $lawyer   = Auth::user();
+        $document = Document::with('case')->findOrFail($documentId);
+        $case     = $document->case;
+
+        if (!$case || !$case->isLawyerAuthorized($lawyer)) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $request->validate([
+            'status' => 'required|in:Draf,Dalam Revisi,Menunggu Persetujuan',
+        ]);
+
+        $oldStatus = $document->collaboration_status;
+        $newStatus = $request->status;
+
+        $document->update(['collaboration_status' => $newStatus]);
+
+        // Update juga status pada versi terakhir jika belum final
+        $latestVersion = $document->documentVersions()->orderBy('version_number', 'desc')->first();
+        if ($latestVersion && !$latestVersion->is_final) {
+            $latestVersion->update(['status' => $newStatus]);
+        }
+
+        DocumentAuditLog::record(
+            $document->id,
+            $case->id,
+            $lawyer->id,
+            'status_change',
+            "Advokat ({$lawyer->name}) mengubah status dokumen '{$document->name}' dari '{$oldStatus}' menjadi '{$newStatus}'."
+        );
+
+        $this->notifyAdvocateTeam(
+            $case,
+            $lawyer,
+            'status_changed',
+            "Status dokumen '{$document->name}' diubah menjadi '{$newStatus}' oleh {$lawyer->name}.",
+            $document
+        );
+
+        return redirect()->route('advokat.cases.collaboration', ['id' => $case->id, 'doc_id' => $document->id])
+            ->with('success', "Status dokumen berhasil diubah menjadi '{$newStatus}'.");
+    }
+
+    /**
+     * Menetapkan Dokumen sebagai Versi Final
+     */
+    public function finalizeDocument(Request $request, $documentId)
+    {
+        $lawyer   = Auth::user();
+        $document = Document::with('case')->findOrFail($documentId);
+        $case     = $document->case;
+
+        if (!$case || !$case->isLawyerAuthorized($lawyer)) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $latestVersion = $document->documentVersions()->orderBy('version_number', 'desc')->first();
+
+        if (!$latestVersion) {
+            return redirect()->back()->with('error', 'Dokumen belum memiliki berkas versi fisik untuk difinalisasi.');
+        }
+
+        return DB::transaction(function () use ($document, $case, $lawyer, $latestVersion) {
+            $latestVersion->update([
+                'status'   => 'Final',
+                'is_final' => true,
+            ]);
+
+            $document->update([
+                'collaboration_status' => 'Final',
+                'status'               => 'Terverifikasi',
+                'finalized_by'         => $lawyer->id,
+                'finalized_at'         => now(),
+            ]);
+
+            DocumentAuditLog::record(
+                $document->id,
+                $case->id,
+                $lawyer->id,
+                'finalized',
+                "Advokat ({$lawyer->name}) menetapkan versi v{$latestVersion->version_number} dari dokumen '{$document->name}' sebagai Final."
+            );
+
+            $this->notifyAdvocateTeam(
+                $case,
+                $lawyer,
+                'finalized',
+                "Dokumen '{$document->name}' (v{$latestVersion->version_number}) telah ditetapkan sebagai FINAL oleh {$lawyer->name}.",
+                $document
+            );
+
+            return redirect()->route('advokat.cases.collaboration', ['id' => $case->id, 'doc_id' => $document->id])
+                ->with('success', "Versi v{$latestVersion->version_number} dari dokumen '{$document->name}' berhasil ditetapkan sebagai Versi Final.");
+        });
+    }
+
+    /**
+     * Tambah Anggota Tim Advokat pada Perkara
+     */
+    public function addTeamMember(Request $request, $caseId)
+    {
+        $lawyer = Auth::user();
+        $case   = LegalCase::findOrFail($caseId);
+
+        if (!$case->isLeadLawyer($lawyer)) {
+            abort(403, 'Hanya Ketua Tim / Advokat Penanggung Jawab perkara yang dapat mengelola anggota tim.');
+        }
+
+        $request->validate([
+            'user_id'      => 'required|exists:users,id',
+            'role_in_case' => 'nullable|string|max:100',
+        ], [
+            'user_id.required' => 'Pilih advokat yang akan ditugaskan ke dalam tim perkara.',
+        ]);
+
+        $targetAdvokat = User::where('id', $request->user_id)->where('role', 'advokat')->firstOrFail();
+
+        if ($targetAdvokat->id === $case->lawyer_id) {
+            return redirect()->back()->with('error', 'Advokat ini adalah penanggung jawab utama perkara.');
+        }
+
+        $alreadyMember = CaseLawyer::where('case_id', $case->id)->where('user_id', $targetAdvokat->id)->exists();
+        if ($alreadyMember) {
+            return redirect()->back()->with('error', 'Advokat ini sudah terdaftar dalam tim perkara.');
+        }
+
+        $roleInCase = $request->role_in_case ?: 'Anggota Tim';
+
+        CaseLawyer::create([
+            'case_id'      => $case->id,
+            'user_id'      => $targetAdvokat->id,
+            'role_in_case' => $roleInCase,
+            'assigned_by'  => $lawyer->id,
+        ]);
+
+        DocumentAuditLog::record(
+            null,
+            $case->id,
+            $lawyer->id,
+            'team_member_added',
+            "Ketua Tim ({$lawyer->name}) menugaskan {$targetAdvokat->name} ({$roleInCase}) ke dalam tim penanganan perkara."
+        );
+
+        // Kirim notifikasi kepada advokat baru
+        $targetAdvokat->notify(new DocumentCollaborationNotification(
+            'team_joined',
+            "Anda telah ditugaskan sebagai {$roleInCase} pada perkara {$case->case_number} oleh {$lawyer->name}.",
+            null,
+            $case,
+            $lawyer
+        ));
+
+        return redirect()->route('advokat.cases.collaboration', $case->id)
+            ->with('success', "Advokat {$targetAdvokat->name} berhasil ditambahkan sebagai {$roleInCase}.");
+    }
+
+    /**
+     * Hapus / Cabut Hak Akses Advokat dari Tim Perkara
+     */
+    public function removeTeamMember(Request $request, $caseId, $userId)
+    {
+        $lawyer = Auth::user();
+        $case   = LegalCase::findOrFail($caseId);
+
+        if (!$case->isLeadLawyer($lawyer)) {
+            abort(403, 'Hanya Ketua Tim / Advokat Penanggung Jawab perkara yang dapat mencabut anggota tim.');
+        }
+
+        if ((int) $userId === (int) $case->lawyer_id) {
+            return redirect()->back()->with('error', 'Penanggung jawab utama perkara tidak dapat dihapus.');
+        }
+
+        $membership = CaseLawyer::where('case_id', $case->id)->where('user_id', $userId)->firstOrFail();
+        $removedUser = User::find($userId);
+
+        $membership->delete();
+
+        DocumentAuditLog::record(
+            null,
+            $case->id,
+            $lawyer->id,
+            'team_member_removed',
+            "Ketua Tim ({$lawyer->name}) mencabut penugasan advokat {$removedUser?->name} dari tim perkara."
+        );
+
+        if ($removedUser) {
+            $removedUser->notify(new DocumentCollaborationNotification(
+                'team_removed',
+                "Penugasan Anda pada perkara {$case->case_number} telah dicabut oleh {$lawyer->name}.",
+                null,
+                $case,
+                $lawyer
+            ));
+        }
+
+        return redirect()->route('advokat.cases.collaboration', $case->id)
+            ->with('success', "Penugasan advokat {$removedUser?->name} berhasil dicabut.");
+    }
+
+    /**
+     * Helper privat kirim notifikasi ke seluruh tim advokat perkara
+     */
+    private function notifyAdvocateTeam(LegalCase $case, User $actor, string $eventType, string $messageText, ?Document $document = null): void
+    {
+        try {
+            $teamIds = $case->allLawyerIds();
+            // Kecualikan actor sendiri
+            $recipientIds = array_diff($teamIds, [$actor->id]);
+
+            if (empty($recipientIds)) {
+                return;
+            }
+
+            $recipients = User::whereIn('id', $recipientIds)->get();
+            foreach ($recipients as $recipient) {
+                $recipient->notify(new DocumentCollaborationNotification(
+                    $eventType,
+                    $messageText,
+                    $document,
+                    $case,
+                    $actor
+                ));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Gagal mengirim notifikasi kolaborasi dokumen: " . $e->getMessage());
+        }
     }
 }

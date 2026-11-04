@@ -61,4 +61,40 @@ class LegalCase extends Model
     {
         return $this->hasMany(Conversation::class, 'case_id')->orderBy('last_message_at', 'desc');
     }
+
+    public function caseLawyers()
+    {
+        return $this->hasMany(CaseLawyer::class, 'case_id');
+    }
+
+    public function teamMembers()
+    {
+        return $this->belongsToMany(User::class, 'case_lawyers', 'case_id', 'user_id')
+            ->withPivot('role_in_case', 'assigned_by')
+            ->withTimestamps();
+    }
+
+    public function allLawyerIds(): array
+    {
+        $ids = [$this->lawyer_id];
+        $teamIds = $this->caseLawyers()->pluck('user_id')->toArray();
+        return array_values(array_unique(array_filter(array_merge($ids, $teamIds))));
+    }
+
+    public function isLawyerAuthorized(?User $user): bool
+    {
+        if (!$user) return false;
+        if ($user->isAdmin()) return true;
+        if (!$user->isAdvokat()) return false;
+        if ($this->lawyer_id === $user->id) return true;
+
+        return $this->caseLawyers()->where('user_id', $user->id)->exists();
+    }
+
+    public function isLeadLawyer(?User $user): bool
+    {
+        if (!$user) return false;
+        if ($user->isAdmin()) return true;
+        return $this->lawyer_id === $user->id;
+    }
 }

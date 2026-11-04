@@ -108,4 +108,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(DocumentRequest::class, 'client_id');
     }
+
+    public function assignedCases()
+    {
+        return $this->belongsToMany(LegalCase::class, 'case_lawyers', 'user_id', 'case_id')
+            ->withPivot('role_in_case', 'assigned_by')
+            ->withTimestamps();
+    }
 }

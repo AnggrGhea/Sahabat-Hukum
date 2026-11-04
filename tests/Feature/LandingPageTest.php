@@ -32,14 +32,14 @@ class LandingPageTest extends TestCase
         $response->assertSee('Layanan');
         $response->assertSee('Tim Advokat');
         $response->assertSee('Struktur Organisasi');
-        $response->assertSee('FAQ');
         $response->assertSee('Kontak');
         $response->assertSee('Masuk');
         $response->assertSee('Daftar');
 
-        // Navbar must NOT have Asisten Hukum in the navbar menu
-        // We ensure Asisten Hukum is not in navbar menu items
+        // Navbar must NOT have FAQ or Asisten Hukum in the navbar menu
         $content = $response->getContent();
+        $this->assertStringNotContainsString('class="nav-link">FAQ<', $content);
+        $this->assertStringNotContainsString('class="mobile-nav-link">FAQ<', $content);
         $this->assertStringNotContainsString('class="nav-link">Asisten Hukum<', $content);
         $this->assertStringNotContainsString('class="mobile-nav-link">Asisten Hukum<', $content);
     }
@@ -182,21 +182,18 @@ class LandingPageTest extends TestCase
     }
 
     /**
-     * Test FAQ section and specific answers.
+     * Test FAQ section has been removed from landing page.
      */
-    public function test_faq_section_content(): void
+    public function test_faq_section_is_removed(): void
     {
         $response = $this->get('/');
 
         $response->assertStatus(200);
-        $response->assertSee('Apa itu Sahabat Hukum?');
-        $response->assertSee('Bagaimana cara mengajukan konsultasi?');
-        $response->assertSee('Apakah saya harus memiliki akun?');
-        $response->assertSee('Bagaimana proses penanganan perkara?');
-        $response->assertSee('Apakah dokumen saya aman?');
-        $response->assertSee('Bagaimana saya dapat berkomunikasi dengan advokat?');
-        $response->assertSee('Apakah Asisten Hukum dapat digunakan tanpa login?');
-        $response->assertSee('Asisten Hukum merupakan fitur internal platform dan hanya dapat digunakan setelah pengguna masuk ke akun Sahabat Hukum.', false);
+        $response->assertDontSee('Pertanyaan yang Sering Diajukan');
+        $response->assertDontSee('Apa itu Sahabat Hukum?');
+        $response->assertDontSee('Bagaimana cara mengajukan konsultasi?');
+        $response->assertDontSee('Apakah saya harus memiliki akun?');
+        $response->assertDontSee('Bagaimana proses penanganan perkara?');
     }
 
     /**

@@ -12,12 +12,17 @@ class LandingPageController extends Controller
      */
     public function index()
     {
-        // Retrieve active advocates with their profiles
-        $lawyers = User::where('role', 'advokat')
-            ->where('status', 'aktif')
-            ->with('lawyerProfile')
-            ->orderBy('id')
-            ->get();
+        try {
+            // Retrieve active advocates with their profiles
+            $lawyers = User::where('role', 'advokat')
+                ->where('status', 'aktif')
+                ->with('lawyerProfile')
+                ->orderBy('id')
+                ->get();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('LandingPageController: Gagal memuat data advokat: ' . $e->getMessage());
+            $lawyers = collect();
+        }
 
         return view('landing', compact('lawyers'));
     }

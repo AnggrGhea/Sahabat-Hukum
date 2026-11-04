@@ -65,7 +65,7 @@
                 @php
                     $unreadCountAdv = Auth::check() ? Auth::user()->unreadNotifications->count() : 0;
                 @endphp
-                <a href="#" class="nav-item">
+                <a href="{{ route('advokat.notifications') }}" class="nav-item {{ request()->routeIs('advokat.notifications*') ? 'active' : '' }}">
                     <i data-lucide="bell"></i> Pemberitahuan
                     @if($unreadCountAdv > 0)
                         <span class="nav-item-badge">{{ $unreadCountAdv }}</span>
@@ -101,12 +101,12 @@
                 
                 <div class="header-actions">
                     @php $unreadCountAdv = Auth::check() ? Auth::user()->unreadNotifications->count() : 0; @endphp
-                    <button class="bell-button" title="Pemberitahuan">
+                    <a href="{{ route('advokat.notifications') }}" class="bell-button" title="Pemberitahuan">
                         <i data-lucide="bell"></i>
                         @if($unreadCountAdv > 0)
                         <span class="bell-badge">{{ $unreadCountAdv }}</span>
                         @endif
-                    </button>
+                    </a>
                     
                     <div class="header-profile-menu">
                         <div class="header-profile-avatar">
@@ -130,8 +130,6 @@
     <script>
       lucide.createIcons();
     </script>
-    <script src="{{ asset('js/jspdf.umd.min.js') }}"></script>
-    @include('components.document-scanner-modal')
     @stack('scripts')
 </body>
 </html>

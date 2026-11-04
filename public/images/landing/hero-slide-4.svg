@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <linearGradient id="bgGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a1220"/>
+      <stop offset="50%" stop-color="#12233f"/>
+      <stop offset="100%" stop-color="#1e375c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bgGrad4)"/>
+  <!-- Legal document review abstraction -->
+  <rect x="500" y="200" width="600" height="500" rx="16" fill="rgba(255,255,255,0.03)" stroke="rgba(212,175,55,0.25)" stroke-width="2"/>
+  <line x1="580" y1="280" x2="1020" y2="280" stroke="rgba(212,175,55,0.4)" stroke-width="4" stroke-linecap="round"/>
+  <line x1="580" y1="340" x2="960" y2="340" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <line x1="580" y1="380" x2="1000" y2="380" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <line x1="580" y1="420" x2="900" y2="420" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <line x1="580" y1="460" x2="980" y2="460" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <circle cx="950" cy="580" r="40" fill="none" stroke="#d4af37" stroke-width="3"/>
+  <text x="800" y="770" font-family="'Inter', sans-serif" font-size="20" fill="rgba(255,255,255,0.3)" text-anchor="middle" letter-spacing="4">PENELAAHAN BERKAS &amp; DOKUMEN PERKARA RESMI</text>
+</svg>

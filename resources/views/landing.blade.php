@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sahabat Hukum — Sistem Manajemen Perkara & Layanan Konsultasi Hukum</title>
+    <title>Sahabat Hukum - Sistem Manajemen Perkara & Layanan Konsultasi Hukum</title>
     <meta name="description" content="Sahabat Hukum — Pendampingan hukum profesional, terpercaya, dan terstruktur. Layanan konsultasi hukum, manajemen perkara, dan koordinasi advokat terintegrasi.">
     <meta name="keywords" content="kantor hukum, advokat, pengacara, konsultasi hukum, manajemen perkara, sahabat hukum, bantuan hukum indonesia">
     <meta name="author" content="Sahabat Hukum">
 
-    <!-- Fonts -->
+    <!-- Modern Sans-Serif Fonts: Plus Jakarta Sans & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Custom Landing CSS -->
+    <!-- Custom Modern Landing CSS -->
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
 </head>
 <body id="beranda">
@@ -24,26 +24,25 @@
     <!-- ====================================================================
          1. NAVBAR
          ==================================================================== -->
-    <header class="site-navbar">
+    <header class="site-navbar" id="siteNavbar">
         <div class="container navbar-inner">
             <a href="{{ url('/') }}" class="navbar-brand">
                 <div class="brand-icon">
-                    <i data-lucide="scale" style="width: 22px; height: 22px;"></i>
+                    <i data-lucide="scale" style="width: 20px; height: 20px;"></i>
                 </div>
                 <div>
                     <div class="brand-title">Sahabat Hukum</div>
-                    <div class="brand-desc">Law Office & Legal Tech</div>
+                    <div class="brand-desc">Law Office &amp; Legal Tech</div>
                 </div>
             </a>
 
             <!-- Desktop Nav Menu -->
             <ul class="navbar-nav">
-                <li><a href="#beranda" class="nav-link">Beranda</a></li>
+                <li><a href="#beranda" class="nav-link active">Beranda</a></li>
                 <li><a href="#tentang" class="nav-link">Tentang Kami</a></li>
                 <li><a href="#layanan" class="nav-link">Layanan</a></li>
                 <li><a href="#advokat" class="nav-link">Tim Advokat</a></li>
                 <li><a href="#struktur" class="nav-link">Struktur Organisasi</a></li>
-                <li><a href="#faq" class="nav-link">FAQ</a></li>
                 <li><a href="#kontak" class="nav-link">Kontak</a></li>
             </ul>
 
@@ -52,26 +51,26 @@
                 @auth
                     @if(auth()->user()->isAdmin())
                         <a href="{{ route('admin.dashboard') }}" class="btn btn-primary btn-sm">
-                            <i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i> Dashboard Admin
+                            <i data-lucide="layout-dashboard" style="width: 15px; height: 15px;"></i> Dashboard Admin
                         </a>
                     @elseif(auth()->user()->isAdvokat())
                         <a href="{{ route('advokat.dashboard') }}" class="btn btn-primary btn-sm">
-                            <i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i> Dashboard Advokat
+                            <i data-lucide="layout-dashboard" style="width: 15px; height: 15px;"></i> Dashboard Advokat
                         </a>
                     @else
                         <a href="{{ route('klien.dashboard') }}" class="btn btn-primary btn-sm">
-                            <i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i> Dashboard Klien
+                            <i data-lucide="layout-dashboard" style="width: 15px; height: 15px;"></i> Dashboard Klien
                         </a>
                     @endif
                 @else
                     <a href="{{ route('login') }}" class="btn btn-outline btn-sm">Masuk</a>
-                    <a href="{{ route('register') }}" class="btn btn-primary btn-sm">Daftar</a>
+                    <a href="{{ route('register') }}" class="btn btn-gold btn-sm">Daftar</a>
                 @endauth
             </div>
 
             <!-- Hamburger Button for Mobile -->
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle navigation menu">
-                <i data-lucide="menu" style="width: 26px; height: 26px;"></i>
+                <i data-lucide="menu" style="width: 24px; height: 24px;"></i>
             </button>
         </div>
 
@@ -83,7 +82,6 @@
                 <li><a href="#layanan" class="mobile-nav-link">Layanan</a></li>
                 <li><a href="#advokat" class="mobile-nav-link">Tim Advokat</a></li>
                 <li><a href="#struktur" class="mobile-nav-link">Struktur Organisasi</a></li>
-                <li><a href="#faq" class="mobile-nav-link">FAQ</a></li>
                 <li><a href="#kontak" class="mobile-nav-link">Kontak</a></li>
             </ul>
             <div class="mobile-auth-actions">
@@ -97,7 +95,7 @@
                     @endif
                 @else
                     <a href="{{ route('login') }}" class="btn btn-outline btn-sm">Masuk</a>
-                    <a href="{{ route('register') }}" class="btn btn-primary btn-sm">Daftar</a>
+                    <a href="{{ route('register') }}" class="btn btn-gold btn-sm">Daftar</a>
                 @endauth
             </div>
         </nav>
@@ -105,14 +103,59 @@
 
     <main>
         <!-- ====================================================================
-             2. HERO SECTION
+             2. HERO SECTION (Smooth Fade Background Slideshow & Modern Sans-Serif)
              ==================================================================== -->
-        <section class="hero-section">
-            <div class="container">
+        <section class="hero-section" id="heroSection">
+            <!-- Full-atmospheric Background Slideshow with Pure Fade Transition -->
+            <div class="hero-slideshow" id="heroSlideshow">
+                <div class="hero-slide active" data-caption="Ruang Sidang &amp; Konsultasi Utama">
+                    <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1800&q=85"
+                         alt="Ruang Rapat &amp; Kantor Hukum Utama"
+                         onerror="this.src='{{ asset('images/landing/hero-slide-1.svg') }}'">
+                </div>
+                <div class="hero-slide" data-caption="Konsultasi Advokat Bersama Klien">
+                    <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1800&q=85"
+                         alt="Konsultasi Advokat dengan Klien"
+                         onerror="this.src='{{ asset('images/landing/hero-slide-2.svg') }}'">
+                </div>
+                <div class="hero-slide" data-caption="Rapat Koordinasi &amp; Penanganan Perkara">
+                    <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1800&q=85"
+                         alt="Rapat Tim Advokat dan Kolaborasi"
+                         onerror="this.src='{{ asset('images/landing/hero-slide-3.svg') }}'">
+                </div>
+                <div class="hero-slide" data-caption="Penelaahan Dokumen &amp; Berkas Perkara">
+                    <img src="https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=1800&q=85"
+                         alt="Pemeriksaan Berkas dan Surat Kuasa"
+                         onerror="this.src='{{ asset('images/landing/hero-slide-4.svg') }}'">
+                </div>
+            </div>
+
+            <!-- Consistent Dark Navy Gradient Overlay -->
+            <div class="hero-overlay"></div>
+            <div class="hero-bottom-fade"></div>
+
+            <!-- Minimalist Floating Side Navigation Arrows (Discreet on desktop) -->
+            <button type="button" class="hero-arrow-btn hero-arrow-prev" id="heroPrevBtn" aria-label="Slide sebelumnya">
+                <i data-lucide="chevron-left" style="width: 20px; height: 20px;"></i>
+            </button>
+            <button type="button" class="hero-arrow-btn hero-arrow-next" id="heroNextBtn" aria-label="Slide berikutnya">
+                <i data-lucide="chevron-right" style="width: 20px; height: 20px;"></i>
+            </button>
+
+            <!-- Minimalist Slide Indicators (Small elegant dots at bottom center) -->
+            <div class="hero-bottom-indicators" id="heroIndicators" aria-label="Navigasi slide foto">
+                <button type="button" class="hero-dot active" data-slide="0" aria-label="Slide 1"></button>
+                <button type="button" class="hero-dot" data-slide="1" aria-label="Slide 2"></button>
+                <button type="button" class="hero-dot" data-slide="2" aria-label="Slide 3"></button>
+                <button type="button" class="hero-dot" data-slide="3" aria-label="Slide 4"></button>
+            </div>
+
+            <div class="container hero-container">
                 <div class="hero-grid">
-                    <div>
+                    <!-- Left: Editorial Content -->
+                    <div class="hero-content">
                         <div class="hero-badge">
-                            <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+                            <i data-lucide="shield-check" style="width: 15px; height: 15px;"></i>
                             <span>Firma Hukum Resmi &amp; Terakreditasi</span>
                         </div>
                         <h1 class="hero-title">
@@ -122,11 +165,11 @@
                             Sahabat Hukum membantu klien memperoleh layanan konsultasi, pendampingan perkara, pengelolaan dokumen, serta komunikasi dengan advokat melalui satu platform yang terintegrasi.
                         </p>
                         <div class="hero-actions">
-                            <a href="{{ auth()->check() ? (auth()->user()->isKlien() ? route('klien.consultations') : route('login')) : route('login') }}" class="btn btn-primary btn-lg">
-                                <i data-lucide="file-text" style="width: 18px; height: 18px;"></i> Ajukan Konsultasi
+                            <a href="{{ auth()->check() ? (auth()->user()->isKlien() ? route('klien.consultations') : route('login')) : route('login') }}" class="btn btn-gold btn-lg">
+                                <i data-lucide="file-text" style="width: 17px; height: 17px;"></i> Ajukan Konsultasi
                             </a>
                             <a href="#layanan" class="btn btn-secondary btn-lg">
-                                <i data-lucide="arrow-down" style="width: 18px; height: 18px;"></i> Pelajari Layanan
+                                <i data-lucide="arrow-down" style="width: 17px; height: 17px;"></i> Pelajari Layanan
                             </a>
                         </div>
                         <div class="hero-stats-row">
@@ -145,54 +188,49 @@
                         </div>
                     </div>
 
-                    <!-- Hero Visual Card: Law Firm Credential Overview -->
-                    <div class="hero-card-wrapper">
-                        <div class="hero-card">
-                            <div class="hero-card-header">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <i data-lucide="briefcase" style="width: 18px; height: 18px; color: var(--navy-800);"></i>
-                                    <span style="font-weight: 700; font-size: 0.9375rem; color: var(--navy-800);">Layanan Hukum Terpadu</span>
+                    <!-- Right: Floating Credential Card -->
+                    <div class="hero-visual-column">
+                        <div class="hero-credential-card">
+                            <div class="hcc-header">
+                                <div class="hcc-org">
+                                    <div class="hcc-org-avatar">
+                                        <i data-lucide="scale" style="width: 20px; height: 20px;"></i>
+                                    </div>
+                                    <div class="hcc-org-meta">
+                                        <h4>Firma Hukum Sahabat Hukum</h4>
+                                        <p>Advokat &amp; Penasihat Hukum Indonesia</p>
+                                    </div>
                                 </div>
-                                <span class="hc-badge">
+                                <span class="hcc-badge">
                                     <i data-lucide="check" style="width: 12px; height: 12px;"></i> Terverifikasi
                                 </span>
                             </div>
 
-                            <div class="hc-avatar-group">
-                                <div class="hc-avatar">
-                                    <i data-lucide="scale" style="width: 24px; height: 24px;"></i>
-                                </div>
-                                <div class="hc-avatar-meta">
-                                    <h4>Firma Hukum Sahabat Hukum</h4>
-                                    <p>Advokat &amp; Penasihat Hukum Indonesia</p>
-                                </div>
-                            </div>
-
-                            <ul class="hc-feature-list">
-                                <li class="hc-feature-item">
-                                    <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+                            <ul class="hcc-features">
+                                <li class="hcc-feature-item">
+                                    <i data-lucide="check-circle-2" style="width: 17px; height: 17px;"></i>
                                     <span>Konsultasi hukum pidana, perdata, dan ketenagakerjaan</span>
                                 </li>
-                                <li class="hc-feature-item">
-                                    <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+                                <li class="hcc-feature-item">
+                                    <i data-lucide="check-circle-2" style="width: 17px; height: 17px;"></i>
                                     <span>Penyusunan berkas &amp; penelaahan legalitas dokumen</span>
                                 </li>
-                                <li class="hc-feature-item">
-                                    <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+                                <li class="hcc-feature-item">
+                                    <i data-lucide="check-circle-2" style="width: 17px; height: 17px;"></i>
                                     <span>Pendampingan litigasi pengadilan &amp; negosiasi non-litigasi</span>
                                 </li>
-                                <li class="hc-feature-item">
-                                    <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+                                <li class="hcc-feature-item">
+                                    <i data-lucide="check-circle-2" style="width: 17px; height: 17px;"></i>
                                     <span>Pembaruan progres perkara berkala bagi klien</span>
                                 </li>
                             </ul>
 
-                            <div class="hero-card-footer">
-                                <div class="hcf-status">
+                            <div class="hcc-footer">
+                                <div class="hcc-status">
                                     <span class="status-dot"></span>
                                     <span>Kantor Buka &amp; Layanan Siap Tanggap</span>
                                 </div>
-                                <span style="font-size: 0.75rem; color: var(--gray-500);">Senin - Jumat</span>
+                                <span style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.5);">Senin - Jumat</span>
                             </div>
                         </div>
                     </div>
@@ -201,25 +239,44 @@
         </section>
 
         <!-- ====================================================================
-             3. TENTANG KAMI
+             3. TENTANG KAMI (Side-by-side)
              ==================================================================== -->
         <section class="about-section" id="tentang">
             <div class="container">
                 <div class="about-grid">
-                    <div class="about-content">
+                    <!-- Left: Framed Law Firm Photograph -->
+                    <div class="about-image-column reveal-on-scroll">
+                        <div class="about-image-wrapper">
+                            <img src="https://images.unsplash.com/photo-1505664194779-8beaceb93744?auto=format&fit=crop&w=1000&q=80"
+                                 alt="Kantor Hukum dan Perpustakaan Sahabat Hukum"
+                                 onerror="this.src='{{ asset('images/landing/about-law-office.svg') }}'">
+                        </div>
+                        <div class="about-seal-badge">
+                            <div class="about-seal-icon">
+                                <i data-lucide="award" style="width: 22px; height: 22px;"></i>
+                            </div>
+                            <div class="about-seal-meta">
+                                <h5>Integritas Teruji</h5>
+                                <p>Firma Hukum Terakreditasi Nasional</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Content & Highlights -->
+                    <div class="about-content reveal-on-scroll">
                         <div class="section-tag">
                             <i data-lucide="award" style="width: 14px; height: 14px;"></i>
                             <span>Tentang Sahabat Hukum</span>
                         </div>
                         <h2>Platform Layanan Hukum Modern &amp; Berintegritas</h2>
-                        <p>
+                        <p class="about-lead">
                             Sahabat Hukum merupakan platform layanan hukum yang membantu menghubungkan klien dengan advokat dan mengelola proses konsultasi serta perkara secara lebih terstruktur. Kami berkomitmen memberikan perlindungan dan kepastian hukum dengan standar profesionalitas yang tinggi.
                         </p>
 
                         <div class="about-points">
                             <div class="about-point-card">
                                 <div class="about-point-icon">
-                                    <i data-lucide="user-check" style="width: 20px; height: 20px;"></i>
+                                    <i data-lucide="user-check" style="width: 18px; height: 18px;"></i>
                                 </div>
                                 <h4>Layanan Profesional</h4>
                                 <p>Ditangani oleh advokat berlisensi resmi dengan dedikasi etika hukum.</p>
@@ -227,7 +284,7 @@
 
                             <div class="about-point-card">
                                 <div class="about-point-icon">
-                                    <i data-lucide="git-commit" style="width: 20px; height: 20px;"></i>
+                                    <i data-lucide="git-commit" style="width: 18px; height: 18px;"></i>
                                 </div>
                                 <h4>Pendampingan Terstruktur</h4>
                                 <p>Alur tahapan perkara yang tertata rapi, transparan, dan terukur.</p>
@@ -235,7 +292,7 @@
 
                             <div class="about-point-card">
                                 <div class="about-point-icon">
-                                    <i data-lucide="folder-lock" style="width: 20px; height: 20px;"></i>
+                                    <i data-lucide="folder-lock" style="width: 18px; height: 18px;"></i>
                                 </div>
                                 <h4>Pengelolaan Dokumen</h4>
                                 <p>Penyimpanan berkas digital dengan hak akses terlindungi dan aman.</p>
@@ -243,36 +300,31 @@
 
                             <div class="about-point-card">
                                 <div class="about-point-icon">
-                                    <i data-lucide="message-square" style="width: 20px; height: 20px;"></i>
+                                    <i data-lucide="message-square" style="width: 18px; height: 18px;"></i>
                                 </div>
                                 <h4>Komunikasi Terintegrasi</h4>
                                 <p>Koordinasi langsung antara klien dan advokat tanpa kendala birokrasi.</p>
                             </div>
                         </div>
-                    </div>
 
-                    <div>
-                        <div class="about-overview-card">
-                            <h3>Komitmen &amp; Standar Praktik Hukum</h3>
-                            <p>
-                                Kantor kami mengedepankan solusi hukum berbasis fakta, regulasi hukum nasional yang berlaku, serta analisis risiko yang cermat untuk melindungi hak dan kepentingan hukum para klien.
-                            </p>
+                        <div class="about-checklist-box">
+                            <h4>Komitmen &amp; Standar Praktik Hukum</h4>
                             <ul class="about-checklist">
                                 <li>
-                                    <i data-lucide="check" style="width: 18px; height: 18px;"></i>
+                                    <i data-lucide="check" style="width: 15px; height: 15px;"></i>
                                     <span>Kerahasiaan hubungan advokat-klien dijaga ketat</span>
                                 </li>
                                 <li>
-                                    <i data-lucide="check" style="width: 18px; height: 18px;"></i>
-                                    <span>Penanganan perkara berbasis data dan dokumentasi yang valid</span>
+                                    <i data-lucide="check" style="width: 15px; height: 15px;"></i>
+                                    <span>Penanganan perkara berbasis data valid</span>
                                 </li>
                                 <li>
-                                    <i data-lucide="check" style="width: 18px; height: 18px;"></i>
-                                    <span>Laporan perkembangan berkala langsung di dashboard akun Anda</span>
+                                    <i data-lucide="check" style="width: 15px; height: 15px;"></i>
+                                    <span>Laporan perkembangan berkala transparan</span>
                                 </li>
                                 <li>
-                                    <i data-lucide="check" style="width: 18px; height: 18px;"></i>
-                                    <span>Pencegahan konflik kepentingan dengan standar etika profesi</span>
+                                    <i data-lucide="check" style="width: 15px; height: 15px;"></i>
+                                    <span>Bebas benturan kepentingan hukum</span>
                                 </li>
                             </ul>
                         </div>
@@ -282,7 +334,7 @@
         </section>
 
         <!-- ====================================================================
-             4. NILAI / KEUNGGULAN
+             4. NILAI UTAMA (Clean Modern Row)
              ==================================================================== -->
         <section class="values-section">
             <div class="container">
@@ -297,10 +349,10 @@
                     </p>
                 </div>
 
-                <div class="values-grid">
+                <div class="values-grid reveal-on-scroll">
                     <div class="value-card">
                         <div class="value-icon-box">
-                            <i data-lucide="award" style="width: 24px; height: 24px;"></i>
+                            <i data-lucide="award" style="width: 22px; height: 22px;"></i>
                         </div>
                         <h3>Profesional</h3>
                         <p>Bekerja sesuai kode etik profesi advokat dengan keahlian hukum yang mendalam.</p>
@@ -308,7 +360,7 @@
 
                     <div class="value-card">
                         <div class="value-icon-box">
-                            <i data-lucide="shield-check" style="width: 24px; height: 24px;"></i>
+                            <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
                         </div>
                         <h3>Terpercaya</h3>
                         <p>Mengedepankan kejujuran, integritas, dan reputasi yang teruji dalam membela hak klien.</p>
@@ -316,7 +368,7 @@
 
                     <div class="value-card">
                         <div class="value-icon-box">
-                            <i data-lucide="eye" style="width: 24px; height: 24px;"></i>
+                            <i data-lucide="eye" style="width: 22px; height: 22px;"></i>
                         </div>
                         <h3>Transparan</h3>
                         <p>Memberikan kepastian tahapan, biaya, dan kemajuan penanganan perkara secara terbuka.</p>
@@ -324,7 +376,7 @@
 
                     <div class="value-card">
                         <div class="value-icon-box">
-                            <i data-lucide="layers" style="width: 24px; height: 24px;"></i>
+                            <i data-lucide="layers" style="width: 22px; height: 22px;"></i>
                         </div>
                         <h3>Terstruktur</h3>
                         <p>Manajemen berkas, jadwal sidang, dan konsultasi yang tertata rapi dalam sistem.</p>
@@ -332,7 +384,7 @@
 
                     <div class="value-card">
                         <div class="value-icon-box">
-                            <i data-lucide="lock" style="width: 24px; height: 24px;"></i>
+                            <i data-lucide="lock" style="width: 22px; height: 22px;"></i>
                         </div>
                         <h3>Aman</h3>
                         <p>Data pribadi dan dokumen perkara dilindungi dengan standar keamanan digital berlapis.</p>
@@ -342,7 +394,7 @@
         </section>
 
         <!-- ====================================================================
-             5. LAYANAN HUKUM
+             5. LAYANAN HUKUM (Editorial Layout)
              ==================================================================== -->
         <section class="services-section" id="layanan">
             <div class="container">
@@ -357,82 +409,112 @@
                     </p>
                 </div>
 
-                <div class="services-grid">
+                <div class="services-grid reveal-on-scroll">
                     <!-- Service 1 -->
                     <div class="service-card">
-                        <div class="service-icon-box">
-                            <i data-lucide="message-square" style="width: 26px; height: 26px;"></i>
+                        <div>
+                            <div class="service-card-top">
+                                <span class="service-index">01</span>
+                                <div class="service-icon-box">
+                                    <i data-lucide="message-square" style="width: 22px; height: 22px;"></i>
+                                </div>
+                            </div>
+                            <h3>Konsultasi Hukum</h3>
+                            <p>Konsultasi dengan advokat mengenai permasalahan hukum yang dihadapi.</p>
                         </div>
-                        <h3>Konsultasi Hukum</h3>
-                        <p>Konsultasi dengan advokat mengenai permasalahan hukum yang dihadapi.</p>
                         <div class="service-footer">
                             <span>Ajukan lewat platform</span>
-                            <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                            <i data-lucide="arrow-right" style="width: 15px; height: 15px;"></i>
                         </div>
                     </div>
 
                     <!-- Service 2 -->
                     <div class="service-card">
-                        <div class="service-icon-box">
-                            <i data-lucide="scale" style="width: 26px; height: 26px;"></i>
+                        <div>
+                            <div class="service-card-top">
+                                <span class="service-index">02</span>
+                                <div class="service-icon-box">
+                                    <i data-lucide="scale" style="width: 22px; height: 22px;"></i>
+                                </div>
+                            </div>
+                            <h3>Pendampingan Perkara</h3>
+                            <p>Pengelolaan dan pemantauan proses perkara bersama advokat.</p>
                         </div>
-                        <h3>Pendampingan Perkara</h3>
-                        <p>Pengelolaan dan pemantauan proses perkara bersama advokat.</p>
                         <div class="service-footer">
                             <span>Litigasi &amp; Non-Litigasi</span>
-                            <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                            <i data-lucide="arrow-right" style="width: 15px; height: 15px;"></i>
                         </div>
                     </div>
 
                     <!-- Service 3 -->
                     <div class="service-card">
-                        <div class="service-icon-box">
-                            <i data-lucide="folder-check" style="width: 26px; height: 26px;"></i>
+                        <div>
+                            <div class="service-card-top">
+                                <span class="service-index">03</span>
+                                <div class="service-icon-box">
+                                    <i data-lucide="folder-check" style="width: 22px; height: 22px;"></i>
+                                </div>
+                            </div>
+                            <h3>Pengelolaan Dokumen</h3>
+                            <p>Pengelolaan dokumen yang berkaitan dengan konsultasi dan perkara.</p>
                         </div>
-                        <h3>Pengelolaan Dokumen</h3>
-                        <p>Pengelolaan dokumen yang berkaitan dengan konsultasi dan perkara.</p>
                         <div class="service-footer">
                             <span>Arsip Digital Terverifikasi</span>
-                            <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                            <i data-lucide="arrow-right" style="width: 15px; height: 15px;"></i>
                         </div>
                     </div>
 
                     <!-- Service 4 -->
                     <div class="service-card">
-                        <div class="service-icon-box">
-                            <i data-lucide="activity" style="width: 26px; height: 26px;"></i>
+                        <div>
+                            <div class="service-card-top">
+                                <span class="service-index">04</span>
+                                <div class="service-icon-box">
+                                    <i data-lucide="activity" style="width: 22px; height: 22px;"></i>
+                                </div>
+                            </div>
+                            <h3>Monitoring Perkara</h3>
+                            <p>Memantau perkembangan dan status perkara secara terstruktur.</p>
                         </div>
-                        <h3>Monitoring Perkara</h3>
-                        <p>Memantau perkembangan dan status perkara secara terstruktur.</p>
                         <div class="service-footer">
                             <span>Update Progres Real-Time</span>
-                            <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                            <i data-lucide="arrow-right" style="width: 15px; height: 15px;"></i>
                         </div>
                     </div>
 
                     <!-- Service 5 -->
                     <div class="service-card">
-                        <div class="service-icon-box">
-                            <i data-lucide="calendar" style="width: 26px; height: 26px;"></i>
+                        <div>
+                            <div class="service-card-top">
+                                <span class="service-index">05</span>
+                                <div class="service-icon-box">
+                                    <i data-lucide="calendar" style="width: 22px; height: 22px;"></i>
+                                </div>
+                            </div>
+                            <h3>Penjadwalan Konsultasi</h3>
+                            <p>Mengatur jadwal konsultasi antara klien dan advokat.</p>
                         </div>
-                        <h3>Penjadwalan Konsultasi</h3>
-                        <p>Mengatur jadwal konsultasi antara klien dan advokat.</p>
                         <div class="service-footer">
                             <span>Agenda Terkoordinasi</span>
-                            <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                            <i data-lucide="arrow-right" style="width: 15px; height: 15px;"></i>
                         </div>
                     </div>
 
                     <!-- Service 6 -->
                     <div class="service-card">
-                        <div class="service-icon-box">
-                            <i data-lucide="messages-square" style="width: 26px; height: 26px;"></i>
+                        <div>
+                            <div class="service-card-top">
+                                <span class="service-index">06</span>
+                                <div class="service-icon-box">
+                                    <i data-lucide="messages-square" style="width: 22px; height: 22px;"></i>
+                                </div>
+                            </div>
+                            <h3>Komunikasi dengan Advokat</h3>
+                            <p>Memudahkan komunikasi antara klien dan advokat yang menangani perkara.</p>
                         </div>
-                        <h3>Komunikasi dengan Advokat</h3>
-                        <p>Memudahkan komunikasi antara klien dan advokat yang menangani perkara.</p>
                         <div class="service-footer">
                             <span>Ruang Percakapan Terpadu</span>
-                            <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                            <i data-lucide="arrow-right" style="width: 15px; height: 15px;"></i>
                         </div>
                     </div>
                 </div>
@@ -440,7 +522,7 @@
         </section>
 
         <!-- ====================================================================
-             6. TIM ADVOKAT
+             6. TIM ADVOKAT (Horizontal Draggable Carousel)
              ==================================================================== -->
         <section class="team-section" id="advokat">
             <div class="container">
@@ -455,10 +537,26 @@
                     </p>
                 </div>
 
-                <div class="team-grid">
+                <!-- Carousel Controls & Drag Hint -->
+                <div class="team-carousel-controls">
+                    <div class="team-carousel-hint">
+                        <i data-lucide="move-horizontal" style="width: 15px; height: 15px;"></i>
+                        <span>Geser atau gunakan tombol navigasi</span>
+                    </div>
+                    <div class="team-nav-buttons">
+                        <button type="button" class="team-nav-btn" id="teamPrevBtn" aria-label="Advokat sebelumnya">
+                            <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+                        </button>
+                        <button type="button" class="team-nav-btn" id="teamNextBtn" aria-label="Advokat berikutnya">
+                            <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Draggable Horizontal Track -->
+                <div class="team-carousel-track" id="teamCarouselTrack">
                     @forelse($lawyers as $lawyer)
                         @php
-                            // Extract initials from lawyer name
                             $nameParts = explode(' ', trim($lawyer->name));
                             $initials = '';
                             foreach (array_slice($nameParts, 0, 2) as $part) {
@@ -467,12 +565,12 @@
                             $specialization = optional($lawyer->lawyerProfile)->specialization ?? 'Hukum Umum & Konsultasi Perkara';
                         @endphp
                         <div class="lawyer-card">
-                            <div class="lawyer-avatar-container">
+                            <div class="lawyer-card-header">
                                 <div class="lawyer-avatar-circle">
                                     {{ $initials ?: 'SH' }}
                                 </div>
                                 <span class="lawyer-badge">
-                                    <i data-lucide="check" style="width: 12px; height: 12px; color: #16a34a;"></i> Berlisensi
+                                    <i data-lucide="check" style="width: 12px; height: 12px;"></i> Berlisensi
                                 </span>
                             </div>
                             <div class="lawyer-info">
@@ -483,19 +581,18 @@
                                 </p>
                                 <div>
                                     <span class="lawyer-spec-badge">
-                                        <i data-lucide="bookmark" style="width: 14px; height: 14px; color: var(--navy-800);"></i>
+                                        <i data-lucide="bookmark" style="width: 13px; height: 13px; color: var(--gold-600);"></i>
                                         <span>{{ $specialization }}</span>
                                     </span>
                                 </div>
                             </div>
                         </div>
                     @empty
-                        <!-- Safe Fallback Representation if DB empty -->
                         <div class="lawyer-card">
-                            <div class="lawyer-avatar-container">
+                            <div class="lawyer-card-header">
                                 <div class="lawyer-avatar-circle">AW</div>
                                 <span class="lawyer-badge">
-                                    <i data-lucide="check" style="width: 12px; height: 12px; color: #16a34a;"></i> Berlisensi
+                                    <i data-lucide="check" style="width: 12px; height: 12px;"></i> Berlisensi
                                 </span>
                             </div>
                             <div class="lawyer-info">
@@ -509,10 +606,10 @@
                         </div>
 
                         <div class="lawyer-card">
-                            <div class="lawyer-avatar-container">
+                            <div class="lawyer-card-header">
                                 <div class="lawyer-avatar-circle">SP</div>
                                 <span class="lawyer-badge">
-                                    <i data-lucide="check" style="width: 12px; height: 12px; color: #16a34a;"></i> Berlisensi
+                                    <i data-lucide="check" style="width: 12px; height: 12px;"></i> Berlisensi
                                 </span>
                             </div>
                             <div class="lawyer-info">
@@ -526,10 +623,10 @@
                         </div>
 
                         <div class="lawyer-card">
-                            <div class="lawyer-avatar-container">
+                            <div class="lawyer-card-header">
                                 <div class="lawyer-avatar-circle">HB</div>
                                 <span class="lawyer-badge">
-                                    <i data-lucide="check" style="width: 12px; height: 12px; color: #16a34a;"></i> Berlisensi
+                                    <i data-lucide="check" style="width: 12px; height: 12px;"></i> Berlisensi
                                 </span>
                             </div>
                             <div class="lawyer-info">
@@ -547,7 +644,7 @@
         </section>
 
         <!-- ====================================================================
-             7. STRUKTUR ORGANISASI
+             7. STRUKTUR ORGANISASI (Visual Hierarchical Tree)
              ==================================================================== -->
         <section class="org-section" id="struktur">
             <div class="container">
@@ -562,12 +659,12 @@
                     </p>
                 </div>
 
-                <div class="org-tree">
+                <div class="org-diagram reveal-on-scroll">
                     <!-- Tier 1: Pimpinan -->
                     <div class="org-tier">
                         <div class="org-node tier-leader">
                             <div class="org-icon-badge">
-                                <i data-lucide="crown" style="width: 22px; height: 22px;"></i>
+                                <i data-lucide="crown" style="width: 20px; height: 20px;"></i>
                             </div>
                             <h3 class="org-title">Pimpinan</h3>
                             <div class="org-role-label">Managing Partner &amp; Dewan Direksi</div>
@@ -581,7 +678,7 @@
                     <div class="org-tier">
                         <div class="org-node tier-lawyers">
                             <div class="org-icon-badge">
-                                <i data-lucide="scale" style="width: 22px; height: 22px;"></i>
+                                <i data-lucide="scale" style="width: 20px; height: 20px;"></i>
                             </div>
                             <h3 class="org-title">Advokat</h3>
                             <div class="org-role-label">Tim Advokat &amp; Konsultan Hukum</div>
@@ -595,7 +692,7 @@
                     <div class="org-tier">
                         <div class="org-node tier-support">
                             <div class="org-icon-badge">
-                                <i data-lucide="clipboard-list" style="width: 22px; height: 22px;"></i>
+                                <i data-lucide="clipboard-list" style="width: 20px; height: 20px;"></i>
                             </div>
                             <h3 class="org-title">Tim Pendukung / Administrasi</h3>
                             <div class="org-role-label">Paralegal, Arsiparis &amp; Layanan Klien</div>
@@ -607,7 +704,7 @@
         </section>
 
         <!-- ====================================================================
-             8. CARA KERJA
+             8. ALUR PELAYANAN (Timeline Track)
              ==================================================================== -->
         <section class="workflow-section">
             <div class="container">
@@ -622,63 +719,51 @@
                     </p>
                 </div>
 
-                <div class="workflow-steps-horizontal">
+                <div class="timeline-track reveal-on-scroll">
                     <!-- Step 1 -->
-                    <div class="step-card">
+                    <div class="timeline-step">
+                        <div class="step-number-node">01</div>
                         <div class="step-num">LANGKAH 01</div>
-                        <div class="step-icon-box">
-                            <i data-lucide="user-plus" style="width: 22px; height: 22px;"></i>
-                        </div>
                         <h4>Daftar / Masuk</h4>
                         <p>Buat akun baru atau masuk ke akun Anda untuk mengakses sistem secara aman.</p>
                     </div>
 
                     <!-- Step 2 -->
-                    <div class="step-card">
+                    <div class="timeline-step">
+                        <div class="step-number-node">02</div>
                         <div class="step-num">LANGKAH 02</div>
-                        <div class="step-icon-box">
-                            <i data-lucide="file-plus" style="width: 22px; height: 22px;"></i>
-                        </div>
                         <h4>Ajukan Konsultasi</h4>
                         <p>Jelaskan duduk perkara hukum yang dihadapi dan unggah berkas awal pendukung.</p>
                     </div>
 
                     <!-- Step 3 -->
-                    <div class="step-card">
+                    <div class="timeline-step">
+                        <div class="step-number-node">03</div>
                         <div class="step-num">LANGKAH 03</div>
-                        <div class="step-icon-box">
-                            <i data-lucide="message-square" style="width: 22px; height: 22px;"></i>
-                        </div>
                         <h4>Konsultasi dengan Advokat</h4>
                         <p>Advokat terpercaya mendalami kasus dan menyusun alternatif strategi hukum terbaik.</p>
                     </div>
 
                     <!-- Step 4 -->
-                    <div class="step-card">
+                    <div class="timeline-step">
+                        <div class="step-number-node">04</div>
                         <div class="step-num">LANGKAH 04</div>
-                        <div class="step-icon-box">
-                            <i data-lucide="gavel" style="width: 22px; height: 22px;"></i>
-                        </div>
                         <h4>Penanganan Perkara</h4>
                         <p>Pelaksanaan pendampingan resmi di pengadilan maupun mediasi di luar persidangan.</p>
                     </div>
 
                     <!-- Step 5 -->
-                    <div class="step-card">
+                    <div class="timeline-step">
+                        <div class="step-number-node">05</div>
                         <div class="step-num">LANGKAH 05</div>
-                        <div class="step-icon-box">
-                            <i data-lucide="trending-up" style="width: 22px; height: 22px;"></i>
-                        </div>
                         <h4>Pantau Perkembangan</h4>
                         <p>Pantau catatan tahapan, jadwal sidang, dan agenda terbaru langsung di dashboard.</p>
                     </div>
 
                     <!-- Step 6 -->
-                    <div class="step-card">
+                    <div class="timeline-step">
+                        <div class="step-number-node">06</div>
                         <div class="step-num">LANGKAH 06</div>
-                        <div class="step-icon-box">
-                            <i data-lucide="folder-check" style="width: 22px; height: 22px;"></i>
-                        </div>
                         <h4>Kelola Dokumen &amp; Komunikasi</h4>
                         <p>Akses arsip dokumen resmi dan koordinasi interaktif dengan advokat penanggung jawab.</p>
                     </div>
@@ -687,59 +772,59 @@
         </section>
 
         <!-- ====================================================================
-             9. PLATFORM SAHABAT HUKUM (DASHBOARD PREVIEW)
+             9. PLATFORM SAHABAT HUKUM (Dashboard Preview Showcase)
              ==================================================================== -->
         <section class="platform-section">
             <div class="container">
                 <div class="platform-grid">
-                    <div class="platform-info">
+                    <div class="platform-info reveal-on-scroll">
                         <div class="section-tag">
                             <i data-lucide="layout-dashboard" style="width: 14px; height: 14px;"></i>
                             <span>Sistem Informasi Terintegrasi</span>
                         </div>
                         <h2>Platform Sahabat Hukum</h2>
-                        <p>
+                        <p class="platform-lead">
                             Sahabat Hukum bukan hanya website informasi, melainkan platform komprehensif untuk mengelola seluruh aktivitas hukum setelah Anda masuk ke akun. Rasakan kemudahan pelacakan perkara dan arsip hukum dalam satu tempat terpadu.
                         </p>
 
                         <div class="platform-features-grid">
                             <div class="pf-item">
-                                <div class="pf-icon"><i data-lucide="message-square" style="width: 16px; height: 16px;"></i></div>
+                                <div class="pf-icon"><i data-lucide="message-square" style="width: 15px; height: 15px;"></i></div>
                                 <div class="pf-text">
                                     <h4>Konsultasi</h4>
                                     <p>Pengajuan dan telaah hukum langsung.</p>
                                 </div>
                             </div>
                             <div class="pf-item">
-                                <div class="pf-icon"><i data-lucide="folder" style="width: 16px; height: 16px;"></i></div>
+                                <div class="pf-icon"><i data-lucide="folder" style="width: 15px; height: 15px;"></i></div>
                                 <div class="pf-text">
                                     <h4>Perkara</h4>
                                     <p>Manajemen berkas perkara &amp; sidang.</p>
                                 </div>
                             </div>
                             <div class="pf-item">
-                                <div class="pf-icon"><i data-lucide="file-check" style="width: 16px; height: 16px;"></i></div>
+                                <div class="pf-icon"><i data-lucide="file-check" style="width: 15px; height: 15px;"></i></div>
                                 <div class="pf-text">
                                     <h4>Dokumen</h4>
                                     <p>Verifikasi &amp; proteksi berkas resmi.</p>
                                 </div>
                             </div>
                             <div class="pf-item">
-                                <div class="pf-icon"><i data-lucide="calendar" style="width: 16px; height: 16px;"></i></div>
+                                <div class="pf-icon"><i data-lucide="calendar" style="width: 15px; height: 15px;"></i></div>
                                 <div class="pf-text">
                                     <h4>Jadwal</h4>
                                     <p>Agenda konsultasi dan persidangan.</p>
                                 </div>
                             </div>
                             <div class="pf-item">
-                                <div class="pf-icon"><i data-lucide="messages-square" style="width: 16px; height: 16px;"></i></div>
+                                <div class="pf-icon"><i data-lucide="messages-square" style="width: 15px; height: 15px;"></i></div>
                                 <div class="pf-text">
                                     <h4>Percakapan</h4>
                                     <p>Chat langsung klien dan advokat.</p>
                                 </div>
                             </div>
                             <div class="pf-item">
-                                <div class="pf-icon"><i data-lucide="bell" style="width: 16px; height: 16px;"></i></div>
+                                <div class="pf-icon"><i data-lucide="bell" style="width: 15px; height: 15px;"></i></div>
                                 <div class="pf-text">
                                     <h4>Notifikasi</h4>
                                     <p>Pemberitahuan perubahan status perkara.</p>
@@ -749,13 +834,13 @@
 
                         <div>
                             <a href="{{ route('login') }}" class="btn btn-primary btn-lg">
-                                <i data-lucide="log-in" style="width: 18px; height: 18px;"></i> Masuk ke Platform
+                                <i data-lucide="log-in" style="width: 17px; height: 17px;"></i> Masuk ke Platform
                             </a>
                         </div>
                     </div>
 
                     <!-- Platform Realistic Mockup Preview -->
-                    <div>
+                    <div class="reveal-on-scroll">
                         <div class="dashboard-mockup">
                             <div class="mockup-window-header">
                                 <span class="window-dot dot-red"></span>
@@ -811,15 +896,15 @@
                                     <div class="mockup-table-preview">
                                         <div class="m-table-header">Perkembangan Perkara Terbaru</div>
                                         <div class="m-table-row">
-                                            <span style="font-weight: 600; color: var(--navy-800);">Sengketa Kontrak Kerjasama</span>
+                                            <span style="font-weight: 600; color: #fff;">Sengketa Kontrak Kerjasama</span>
                                             <span class="m-pill pill-active">Proses Sidang</span>
                                         </div>
                                         <div class="m-table-row">
-                                            <span style="font-weight: 600; color: var(--navy-800);">Klarifikasi Waris &amp; Harta Bersama</span>
+                                            <span style="font-weight: 600; color: #fff;">Klarifikasi Waris &amp; Harta Bersama</span>
                                             <span class="m-pill pill-done">Mediasi Berhasil</span>
                                         </div>
                                         <div class="m-table-row">
-                                            <span style="font-weight: 600; color: var(--navy-800);">Pemberkasan Surat Kuasa Khusus</span>
+                                            <span style="font-weight: 600; color: #fff;">Pemberkasan Surat Kuasa Khusus</span>
                                             <span class="m-pill pill-done">Terverifikasi</span>
                                         </div>
                                     </div>
@@ -832,7 +917,7 @@
         </section>
 
         <!-- ====================================================================
-             10. ASISTEN HUKUM (FITUR INTERNAL DENGAN NOTICE KETAT)
+             10. ASISTEN HUKUM (Internal AI Feature Notice)
              ==================================================================== -->
         <section class="assistant-section">
             <div class="container assistant-container">
@@ -845,10 +930,10 @@
                     Bantuan informasi hukum berbasis AI untuk membantu pengguna memahami informasi dan sumber hukum yang relevan.
                 </p>
 
-                <div class="assistant-features-grid">
+                <div class="assistant-features-grid reveal-on-scroll">
                     <div class="as-feature-card">
                         <div class="as-icon-box">
-                            <i data-lucide="search" style="width: 20px; height: 20px;"></i>
+                            <i data-lucide="search" style="width: 18px; height: 18px;"></i>
                         </div>
                         <h4>Mencari Informasi Hukum</h4>
                         <p>Penelusuran regulasi dan peraturan perundang-undangan Indonesia secara terstruktur.</p>
@@ -856,7 +941,7 @@
 
                     <div class="as-feature-card">
                         <div class="as-icon-box">
-                            <i data-lucide="book-open" style="width: 20px; height: 20px;"></i>
+                            <i data-lucide="book-open" style="width: 18px; height: 18px;"></i>
                         </div>
                         <h4>Membantu Memahami Konteks</h4>
                         <p>Menjelaskan istilah, asas, dan konstruksi hukum dalam bahasa yang mudah dipahami.</p>
@@ -864,7 +949,7 @@
 
                     <div class="as-feature-card">
                         <div class="as-icon-box">
-                            <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+                            <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
                         </div>
                         <h4>Menjelaskan Sumber Tersedia</h4>
                         <p>Sintesis informasi berdasarkan korpus hukum resmi dan basis pengetahuan terpercaya.</p>
@@ -872,7 +957,7 @@
 
                     <div class="as-feature-card">
                         <div class="as-icon-box">
-                            <i data-lucide="file-badge" style="width: 20px; height: 20px;"></i>
+                            <i data-lucide="file-badge" style="width: 18px; height: 18px;"></i>
                         </div>
                         <h4>Menampilkan Referensi</h4>
                         <p>Menyajikan rujukan pasal, undang-undang, serta yurisprudensi terkait secara akurat.</p>
@@ -880,10 +965,10 @@
                 </div>
 
                 <!-- Internal Authentication Notice -->
-                <div class="assistant-auth-notice">
+                <div class="assistant-auth-notice reveal-on-scroll">
                     <div class="notice-content">
                         <div class="notice-icon">
-                            <i data-lucide="lock" style="width: 20px; height: 20px;"></i>
+                            <i data-lucide="lock" style="width: 18px; height: 18px;"></i>
                         </div>
                         <div class="notice-text">
                             <h5>Fitur Eksklusif Pengguna Terdaftar</h5>
@@ -892,140 +977,31 @@
                     </div>
                     <div>
                         <a href="{{ route('login') }}" class="btn btn-gold">
-                            <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Masuk untuk Menggunakan Asisten Hukum
+                            <i data-lucide="log-in" style="width: 15px; height: 15px;"></i> Masuk untuk Menggunakan Asisten Hukum
                         </a>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ====================================================================
-             11. FAQ SECTION
-             ==================================================================== -->
-        <section class="faq-section" id="faq">
-            <div class="container">
-                <div class="section-header">
-                    <div class="section-tag">
-                        <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i>
-                        <span>Pertanyaan Umum</span>
-                    </div>
-                    <h2 class="section-title">Pertanyaan yang Sering Diajukan</h2>
-                    <p class="section-subtitle">
-                        Temukan jawaban seputar layanan, kerahasiaan, dan alur pendampingan hukum di Sahabat Hukum.
-                    </p>
-                </div>
 
-                <div class="faq-list">
-                    <!-- Q1 -->
-                    <div class="faq-item">
-                        <button class="faq-question">
-                            <span>Apa itu Sahabat Hukum?</span>
-                            <i data-lucide="chevron-down" class="faq-icon"></i>
-                        </button>
-                        <div class="faq-answer">
-                            <div class="faq-answer-inner">
-                                Sahabat Hukum adalah Sistem Informasi Manajemen Perkara dan Layanan Konsultasi Hukum Berbasis Web yang membantu menghubungkan masyarakat dan pelaku usaha dengan advokat profesional untuk menangani konsultasi, pendampingan perkara, hingga pengelolaan dokumen secara terstruktur dan transparan.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Q2 -->
-                    <div class="faq-item">
-                        <button class="faq-question">
-                            <span>Bagaimana cara mengajukan konsultasi?</span>
-                            <i data-lucide="chevron-down" class="faq-icon"></i>
-                        </button>
-                        <div class="faq-answer">
-                            <div class="faq-answer-inner">
-                                Anda cukup mendaftar atau masuk ke akun Sahabat Hukum, membuka menu Konsultasi pada dashboard Klien, kemudian mengisi permohonan konsultasi mengenai permasalahan hukum yang sedang dihadapi beserta dokumen pendukung awal.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Q3 -->
-                    <div class="faq-item">
-                        <button class="faq-question">
-                            <span>Apakah saya harus memiliki akun?</span>
-                            <i data-lucide="chevron-down" class="faq-icon"></i>
-                        </button>
-                        <div class="faq-answer">
-                            <div class="faq-answer-inner">
-                                Ya. Untuk menjaga kerahasiaan informasi, keamanan data, dan kelancaran koordinasi dengan advokat, seluruh layanan konsultasi dan penanganan perkara memerlukan akun terdaftar.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Q4 -->
-                    <div class="faq-item">
-                        <button class="faq-question">
-                            <span>Bagaimana proses penanganan perkara?</span>
-                            <i data-lucide="chevron-down" class="faq-icon"></i>
-                        </button>
-                        <div class="faq-answer">
-                            <div class="faq-answer-inner">
-                                Setelah permohonan Anda ditelaah dalam sesi konsultasi, advokat akan menyusun surat kuasa, strategi penanganan perkara (baik jalur litigasi persidangan maupun negosiasi non-litigasi), dan memperbarui tahapan perkembangannya secara berkala di platform.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Q5 -->
-                    <div class="faq-item">
-                        <button class="faq-question">
-                            <span>Apakah dokumen saya aman?</span>
-                            <i data-lucide="chevron-down" class="faq-icon"></i>
-                        </button>
-                        <div class="faq-answer">
-                            <div class="faq-answer-inner">
-                                Sangat aman. Sistem Sahabat Hukum dilengkapi mekanisme kontrol akses ketat (IDOR protection) dan verifikasi dokumen, sehingga hanya Anda dan advokat yang ditugaskan yang dapat mengakses dokumen tersebut.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Q6 -->
-                    <div class="faq-item">
-                        <button class="faq-question">
-                            <span>Bagaimana saya dapat berkomunikasi dengan advokat?</span>
-                            <i data-lucide="chevron-down" class="faq-icon"></i>
-                        </button>
-                        <div class="faq-answer">
-                            <div class="faq-answer-inner">
-                                Anda dapat berkomunikasi secara langsung melalui modul Percakapan internal platform serta menjadwalkan agenda pertemuan konsultasi lanjutan sesuai ketersediaan waktu advokat penanggung jawab.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Q7 -->
-                    <div class="faq-item">
-                        <button class="faq-question">
-                            <span>Apakah Asisten Hukum dapat digunakan tanpa login?</span>
-                            <i data-lucide="chevron-down" class="faq-icon"></i>
-                        </button>
-                        <div class="faq-answer">
-                            <div class="faq-answer-inner">
-                                Asisten Hukum merupakan fitur internal platform dan hanya dapat digunakan setelah pengguna masuk ke akun Sahabat Hukum.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
         <!-- ====================================================================
-             12. CALL TO ACTION
+             12. CALL TO ACTION (CTA Konsultasi)
              ==================================================================== -->
         <section class="cta-section">
             <div class="container">
-                <div class="cta-box">
+                <div class="cta-box reveal-on-scroll">
                     <h2>Siap Mendapatkan Pendampingan Hukum?</h2>
                     <p>
                         Mulai konsultasi dan kelola proses hukum Anda melalui Sahabat Hukum. Dapatkan kepastian langkah hukum bersama para praktisi terbaik.
                     </p>
                     <div class="cta-buttons">
                         <a href="{{ route('register') }}" class="btn btn-gold btn-lg">
-                            <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i> Daftar Sekarang
+                            <i data-lucide="user-plus" style="width: 17px; height: 17px;"></i> Daftar Sekarang
                         </a>
-                        <a href="{{ route('login') }}" class="btn btn-outline btn-lg" style="color: var(--white); border-color: rgba(255,255,255,0.4);">
-                            <i data-lucide="log-in" style="width: 18px; height: 18px;"></i> Masuk
+                        <a href="{{ route('login') }}" class="btn btn-secondary btn-lg">
+                            <i data-lucide="log-in" style="width: 17px; height: 17px;"></i> Masuk
                         </a>
                     </div>
                 </div>
@@ -1043,7 +1019,7 @@
                 <div class="footer-brand-col">
                     <div class="navbar-brand">
                         <div class="brand-icon">
-                            <i data-lucide="scale" style="width: 22px; height: 22px;"></i>
+                            <i data-lucide="scale" style="width: 20px; height: 20px;"></i>
                         </div>
                         <div>
                             <div class="brand-title">Sahabat Hukum</div>
@@ -1063,7 +1039,6 @@
                         <li><a href="#layanan" class="footer-link">Layanan</a></li>
                         <li><a href="#advokat" class="footer-link">Tim Advokat</a></li>
                         <li><a href="#struktur" class="footer-link">Struktur Organisasi</a></li>
-                        <li><a href="#faq" class="footer-link">FAQ</a></li>
                         <li><a href="#kontak" class="footer-link">Kontak</a></li>
                     </ul>
                 </div>
@@ -1073,19 +1048,19 @@
                     <h4>Informasi Kontak</h4>
                     <ul class="footer-contact-list">
                         <li class="footer-contact-item">
-                            <i data-lucide="map-pin" style="width: 18px; height: 18px;"></i>
+                            <i data-lucide="map-pin" style="width: 17px; height: 17px;"></i>
                             <span>Gedung Sahabat Hukum, Lantai 4, Jl. Sudirman No. 88, Jakarta Pusat 10220</span>
                         </li>
                         <li class="footer-contact-item">
-                            <i data-lucide="mail" style="width: 18px; height: 18px;"></i>
+                            <i data-lucide="mail" style="width: 17px; height: 17px;"></i>
                             <span>kontak@sahabathukum.com</span>
                         </li>
                         <li class="footer-contact-item">
-                            <i data-lucide="phone" style="width: 18px; height: 18px;"></i>
+                            <i data-lucide="phone" style="width: 17px; height: 17px;"></i>
                             <span>+62 21 5550 8899 / +62 811 2233 4455</span>
                         </li>
                         <li class="footer-contact-item">
-                            <i data-lucide="clock" style="width: 18px; height: 18px;"></i>
+                            <i data-lucide="clock" style="width: 17px; height: 17px;"></i>
                             <span>Senin – Jumat: 08:30 – 17:00 WIB</span>
                         </li>
                     </ul>
@@ -1109,10 +1084,38 @@
     <!-- Interactive Scripts -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Initialize Lucide Icons
+            // 1. Initialize Lucide Icons
             lucide.createIcons();
 
-            // Mobile Hamburger Menu Toggle
+            // 2. Navbar Scroll Effect & Active Link Highlight
+            const navbar = document.getElementById('siteNavbar');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section[id], footer[id], body[id]');
+
+            window.addEventListener('scroll', function () {
+                if (window.scrollY > 30) {
+                    navbar.classList.add('scrolled');
+                } else {
+                    navbar.classList.remove('scrolled');
+                }
+
+                let current = '';
+                sections.forEach(function (section) {
+                    const sectionTop = section.offsetTop - 120;
+                    if (window.scrollY >= sectionTop) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(function (link) {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active');
+                    }
+                });
+            }, { passive: true });
+
+            // 3. Mobile Hamburger Menu Toggle
             const hamburgerBtn = document.getElementById('hamburgerBtn');
             const mobileNav = document.getElementById('mobileNav');
 
@@ -1121,7 +1124,6 @@
                     mobileNav.classList.toggle('open');
                 });
 
-                // Close mobile menu on clicking any link
                 const mobileLinks = mobileNav.querySelectorAll('a');
                 mobileLinks.forEach(function (link) {
                     link.addEventListener('click', function () {
@@ -1130,34 +1132,170 @@
                 });
             }
 
-            // Accordion FAQ Toggle
-            const faqItems = document.querySelectorAll('.faq-item');
-            faqItems.forEach(function (item) {
-                const questionBtn = item.querySelector('.faq-question');
-                const answer = item.querySelector('.faq-answer');
+            // 4. Hero Slideshow: Continuous Pure-Fade Auto-Transition (4.5s)
+            const slides = document.querySelectorAll('.hero-slide');
+            const dots = document.querySelectorAll('.hero-dot');
+            const prevBtn = document.getElementById('heroPrevBtn');
+            const nextBtn = document.getElementById('heroNextBtn');
 
-                questionBtn.addEventListener('click', function () {
-                    const isActive = item.classList.contains('active');
+            let currentSlide = 0;
+            let slideInterval = null;
+            const slideDuration = 4500; // 4.5 seconds
 
-                    // Close all other items
-                    faqItems.forEach(function (otherItem) {
-                        otherItem.classList.remove('active');
-                        const otherAnswer = otherItem.querySelector('.faq-answer');
-                        if (otherAnswer) {
-                            otherAnswer.style.maxHeight = null;
-                        }
-                    });
+            // Preload all slideshow images immediately into browser cache
+            slides.forEach(function (slide) {
+                const img = slide.querySelector('img');
+                if (img && img.src) {
+                    const preloader = new Image();
+                    preloader.src = img.src;
+                }
+            });
 
-                    // Toggle current item
-                    if (!isActive) {
-                        item.classList.add('active');
-                        answer.style.maxHeight = answer.scrollHeight + "px";
+            function showSlide(index) {
+                if (slides.length === 0) return;
+                currentSlide = (index + slides.length) % slides.length;
+
+                slides.forEach(function (slide, i) {
+                    if (i === currentSlide) {
+                        slide.classList.add('active');
                     } else {
-                        item.classList.remove('active');
-                        answer.style.maxHeight = null;
+                        slide.classList.remove('active');
                     }
                 });
+
+                dots.forEach(function (dot, i) {
+                    if (i === currentSlide) {
+                        dot.classList.add('active');
+                    } else {
+                        dot.classList.remove('active');
+                    }
+                });
+            }
+
+            function nextSlide() {
+                showSlide(currentSlide + 1);
+            }
+
+            function prevSlide() {
+                showSlide(currentSlide - 1);
+            }
+
+            // Respect user prefers-reduced-motion preference
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            function startSlideShow() {
+                stopSlideShow();
+                if (!prefersReducedMotion) {
+                    slideInterval = setInterval(nextSlide, slideDuration);
+                }
+            }
+
+            function stopSlideShow() {
+                if (slideInterval) {
+                    clearInterval(slideInterval);
+                    slideInterval = null;
+                }
+            }
+
+            function resetSlideTimer() {
+                stopSlideShow();
+                startSlideShow();
+            }
+
+            // Manual controls update slide immediately and reset timer properly
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function () {
+                    nextSlide();
+                    resetSlideTimer();
+                });
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function () {
+                    prevSlide();
+                    resetSlideTimer();
+                });
+            }
+
+            dots.forEach(function (dot, i) {
+                dot.addEventListener('click', function () {
+                    showSlide(i);
+                    resetSlideTimer();
+                });
             });
+
+            // Start auto slideshow (runs continuously without pausing on hover)
+            startSlideShow();
+
+            // 5. Tim Advokat Horizontal Carousel (Draggable mouse, swipe touch & arrow buttons)
+            const teamTrack = document.getElementById('teamCarouselTrack');
+            const teamPrevBtn = document.getElementById('teamPrevBtn');
+            const teamNextBtn = document.getElementById('teamNextBtn');
+
+            if (teamTrack) {
+                let isDown = false;
+                let startX = 0;
+                let scrollLeft = 0;
+
+                teamTrack.addEventListener('mousedown', function (e) {
+                    isDown = true;
+                    teamTrack.classList.add('dragging');
+                    startX = e.pageX - teamTrack.offsetLeft;
+                    scrollLeft = teamTrack.scrollLeft;
+                });
+
+                teamTrack.addEventListener('mouseleave', function () {
+                    isDown = false;
+                    teamTrack.classList.remove('dragging');
+                });
+
+                teamTrack.addEventListener('mouseup', function () {
+                    isDown = false;
+                    teamTrack.classList.remove('dragging');
+                });
+
+                teamTrack.addEventListener('mousemove', function (e) {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - teamTrack.offsetLeft;
+                    const walk = (x - startX) * 1.5;
+                    teamTrack.scrollLeft = scrollLeft - walk;
+                });
+
+                if (teamNextBtn) {
+                    teamNextBtn.addEventListener('click', function () {
+                        const cardWidth = teamTrack.querySelector('.lawyer-card')?.offsetWidth || 330;
+                        teamTrack.scrollBy({ left: cardWidth + 24, behavior: 'smooth' });
+                    });
+                }
+
+                if (teamPrevBtn) {
+                    teamPrevBtn.addEventListener('click', function () {
+                        const cardWidth = teamTrack.querySelector('.lawyer-card')?.offsetWidth || 330;
+                        teamTrack.scrollBy({ left: -(cardWidth + 24), behavior: 'smooth' });
+                    });
+                }
+            }
+
+            // 6. Reveal on Scroll (IntersectionObserver)
+            if ('IntersectionObserver' in window && !prefersReducedMotion) {
+                const observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('revealed');
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.1 });
+
+                document.querySelectorAll('.reveal-on-scroll').forEach(function (el) {
+                    observer.observe(el);
+                });
+            } else {
+                document.querySelectorAll('.reveal-on-scroll').forEach(function (el) {
+                    el.classList.add('revealed');
+                });
+            }
         });
     </script>
 </body>

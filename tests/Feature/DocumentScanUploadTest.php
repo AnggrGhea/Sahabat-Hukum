@@ -154,4 +154,89 @@ class DocumentScanUploadTest extends TestCase
 
         $response->assertSessionHasErrors('file');
     }
+
+    public function test_6_advocate_documents_page_has_no_scanner_button_or_modal_but_retains_minta_and_unggah(): void
+    {
+        $response = $this->actingAs($this->lawyerSupri)->get('/advokat/dokumen');
+
+        $response->assertOk();
+        $response->assertSee('Minta Dokumen Klien');
+        $response->assertSee('Unggah Dokumen Advokat');
+        $response->assertDontSee('Scan Dokumen Advokat');
+        $response->assertDontSee('camScannerModal');
+        $response->assertDontSee('jspdf.umd.min.js');
+    }
+
+    public function test_7_advocate_case_detail_page_has_no_scan_document_button(): void
+    {
+        $response = $this->actingAs($this->lawyerSupri)->get("/advokat/perkara/{$this->case->id}");
+
+        $response->assertOk();
+        $response->assertDontSee('Scan Dokumen');
+        $response->assertDontSee('camScannerModal');
+    }
+
+    public function test_8_advocate_can_request_document_from_client(): void
+    {
+        $response = $this->actingAs($this->lawyerSupri)->post("/advokat/perkara/{$this->case->id}/dokumen", [
+            'title'         => 'Akta Kelahiran Pemohon',
+            'document_type' => 'Dokumen Pendukung',
+            'description'   => 'Mohon unggah akta kelahiran asli.',
+            'priority'      => 'Tinggi',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('document_requests', [
+            'case_id'   => $this->case->id,
+            'client_id' => $this->clientRiko->id,
+            'title'     => 'Akta Kelahiran Pemohon',
+        ]);
+    }
+
+    public function test_9_advocate_can_verify_and_reject_document(): void
+    {
+        $fakePdf = UploadedFile::fake()->create('Bukti_Transfer.pdf', 200, 'application/pdf');
+        $filePath = $fakePdf->store('documents/test', 'local');
+
+        $doc = Document::create([
+            'case_id'       => $this->case->id,
+            'client_id'     => $this->clientRiko->id,
+            'lawyer_id'     => $this->lawyerSupri->id,
+            'uploaded_by'   => $this->clientRiko->id,
+            'name'          => 'Bukti Transfer Bank',
+            'file_name'     => 'Bukti_Transfer.pdf',
+            'file_path'     => $filePath,
+            'file_size'     => 200 * 1024,
+            'file_type'     => 'pdf',
+            'mime_type'     => 'application/pdf',
+            'document_type' => 'Bukti Pembayaran',
+            'status'        => 'Menunggu Verifikasi',
+        ]);
+
+        // Verifikasi dokumen
+        $resVerify = $this->actingAs($this->lawyerSupri)->post("/advokat/dokumen/{$doc->id}/verifikasi");
+        $resVerify->assertSessionHas('success');
+        $this->assertEquals('Terverifikasi', $doc->fresh()->status);
+
+        // Tolak dokumen
+        $resReject = $this->actingAs($this->lawyerSupri)->post("/advokat/dokumen/{$doc->id}/tolak", [
+            'rejection_reason' => 'Bukti transfer buram dan nominal tidak terlihat jelas.',
+        ]);
+        $resReject->assertSessionHas('success');
+        $this->assertEquals('Ditolak', $doc->fresh()->status);
+        $this->assertEquals('Bukti transfer buram dan nominal tidak terlihat jelas.', $doc->fresh()->rejection_reason);
+    }
+
+    public function test_10_client_document_features_and_modal_remain_functional(): void
+    {
+        $response = $this->actingAs($this->clientRiko)->get('/klien/dokumen');
+
+        $response->assertOk();
+        $response->assertSee('Unggah Dokumen Baru');
+        $response->assertSee('Scan Dokumen');
+        $response->assertSee('camScannerModal');
+        $response->assertSee('jspdf.umd.min.js');
+    }
 }

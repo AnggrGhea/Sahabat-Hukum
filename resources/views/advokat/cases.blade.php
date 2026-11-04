@@ -132,6 +132,9 @@
                 </div>
             </div>
             <div class="p-topbar-actions">
+                <a href="{{ route('advokat.cases.collaboration', $case->id) }}" class="btn-tambah-perkembangan" style="background:#1e3a5f; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    <i data-lucide="folder-git-2" style="width:14px;height:14px;"></i> Kolaborasi Dokumen
+                </a>
                 @php
                     $caseConv = \App\Models\Conversation::where('case_id', $case->id)->first();
                 @endphp
@@ -140,7 +143,7 @@
                     <i data-lucide="message-circle" style="width:14px;"></i> Percakapan
                 </a>
                 @endif
-                <button type="button" onclick="document.getElementById('form-progress').classList.toggle('hidden')" class="btn-tambah-perkembangan">
+                <button type="button" onclick="document.getElementById('form-progress').classList.toggle('hidden')" class="btn-tambah-perkembangan" style="background:#334155;">
                     <i data-lucide="plus" style="width:14px;"></i> Tambah Perkembangan
                 </button>
                 <button type="button" onclick="openAdvokatMintaModal()" class="btn-minta-dokumen">
@@ -207,18 +210,35 @@
                 </div>
             </div>
 
-            {{-- RIGHT: Ringkasan Dokumen Perkara (Sesuai Desain Referensi Halaman 2) --}}
+            {{-- RIGHT: Ringkasan Dokumen Perkara & Tim Advokat --}}
             <div>
+                {{-- Kartu Ruang Kolaborasi Dokumen Banner --}}
+                <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f233d 100%); border-radius: 10px; padding: 16px 18px; color: #fff; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(30,58,95,0.2);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                        <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#93c5fd;">Fitur Kolaborasi</span>
+                        <span style="font-size:0.7rem; background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:12px; font-weight:600;">
+                            {{ $case->teamMembers->count() + 1 }} Advokat
+                        </span>
+                    </div>
+                    <h4 style="font-size:0.95rem; font-weight:700; margin:0 0 6px 0; color:#fff;">Ruang Kolaborasi Dokumen</h4>
+                    <p style="font-size:0.75rem; color:#cbd5e1; margin:0 0 12px 0; line-height:1.4;">
+                        Kelola Surat Gugatan, Replik, Duplik, dan bukti bersama tim advokat dengan sistem versioning file.
+                    </p>
+                    <a href="{{ route('advokat.cases.collaboration', $case->id) }}" style="display:inline-flex; align-items:center; gap:6px; background:#fff; color:#1e3a5f; padding:7px 14px; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; transition:all 0.15s;">
+                        <i data-lucide="folder-git-2" style="width:14px;height:14px;"></i> Masuk Ruang Kolaborasi
+                    </a>
+                </div>
+
                 <div class="doc-summary-card">
                     <div class="doc-summary-header">
-                        <h4 class="doc-summary-title">Dokumen</h4>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <button type="button" onclick="openDocumentScanner({ caseId: {{ $case->id }}, isAdvocate: true })"
-                                    style="padding:4px 10px;background:#fff;border:1px solid #cbd5e1;border-radius:6px;color:#1e3a5f;font-size:.75rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-                                <i data-lucide="camera" style="width:13px;height:13px;"></i> Scan Dokumen
-                            </button>
+                        <h4 class="doc-summary-title">Dokumen Perkara</h4>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <a href="{{ route('advokat.cases.collaboration', $case->id) }}" class="doc-summary-link" style="color:#1e3a5f;font-weight:700;" title="Kelola Versi & Kolaborasi">
+                                Kolaborasi
+                            </a>
+                            <span style="color:#cbd5e1;">•</span>
                             <a href="{{ route('advokat.documents', ['case_id' => $case->id]) }}" class="doc-summary-link" title="Buka Pusat Manajemen Dokumen">
-                                Lihat Semua
+                                Semua
                             </a>
                         </div>
                     </div>

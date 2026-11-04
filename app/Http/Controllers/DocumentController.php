@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Models\DocumentVersion;
 use App\Models\DocumentAuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -81,5 +82,37 @@ class DocumentController extends Controller
         $filename = $document->original_filename ?: ($document->name . '.' . pathinfo($document->file_path, PATHINFO_EXTENSION));
 
         return Storage::disk('local')->download($document->file_path, $filename);
+    }
+
+    /**
+     * Download a specific version file of the document
+     */
+    public function downloadVersion($documentId, $versionId)
+    {
+        $document = Document::with('case')->findOrFail($documentId);
+
+        Gate::authorize('download', $document);
+
+        $version = $document->documentVersions()->findOrFail($versionId);
+
+        if (!$version->file_path || !Storage::disk('local')->exists($version->file_path)) {
+            abort(404, 'Berkas versi fisik tidak ditemukan di penyimpanan server.');
+        }
+
+        $user = Auth::user();
+        $roleLabel = ucfirst($user->role);
+        $note = "{$roleLabel} ({$user->name}) mengunduh versi v{$version->version_number} dari berkas '{$document->name}'.";
+
+        DocumentAuditLog::record(
+            $document->id,
+            $document->case_id,
+            $user->id,
+            'download_version',
+            $note
+        );
+
+        $filename = $version->original_filename ?: ($document->name . "_v{$version->version_number}." . pathinfo($version->file_path, PATHINFO_EXTENSION));
+
+        return Storage::disk('local')->download($version->file_path, $filename);
     }
 }
