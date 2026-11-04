@@ -1,0 +1,57 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  IMAGE_NAME: silakum
+  IMAGE_TAG: v1.0.0
+  CONTAINER_NAME: silakum
+  DOCKER_HOST: unix:///var/run/docker.sock
+
+before_script:
+  - git config --global url."http://10.10.30.253:82/".insteadOf "https://git.pratama.live/"
+
+# ============================================================
+# BUILD
+# ============================================================
+
+build:
+  stage: build
+  image: docker:27-cli
+
+  tags:
+    - docker
+
+  script:
+    - docker info
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+  only:
+    - main
+
+# ============================================================
+# DEPLOY
+# ============================================================
+
+deploy:
+  stage: deploy
+  image: docker:27-cli
+
+  tags:
+    - docker
+
+  before_script:
+    - printf '%s\n' "$FILE_ENV" > .env
+    - git config --global url."http://10.10.30.253:82/".insteadOf "https://git.pratama.live/"
+
+  script:
+    - docker info
+
+    # Deploy container
+    - docker compose up -d --no-build --remove-orphans
+
+    # Verify deployment
+    - docker compose ps
+
+  only:
+    - main
