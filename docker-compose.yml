@@ -1,0 +1,32 @@
+services:
+  app:
+    image: silakum:v1.0.0
+    container_name: silakum
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    restart: always
+
+    ports:
+      - "8116:80"
+
+    env_file:
+      - .env
+
+    volumes:
+      - silakum-storage:/app/storage
+
+    networks:
+      - gitlab-repo
+
+    init: true
+
+volumes:
+  silakum-storage:
+    name: silakum-storage
+
+networks:
+  gitlab-repo:
+    external: true
