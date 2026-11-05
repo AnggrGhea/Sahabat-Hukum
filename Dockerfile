@@ -62,6 +62,8 @@ COPY --from=php-builder /app/vendor ./vendor
 COPY --from=frontend-builder /app/public/build ./public/build
 
 COPY Caddyfile /etc/caddy/Caddyfile
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 RUN php artisan package:discover --ansi
 
@@ -70,6 +72,8 @@ RUN mkdir -p \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
+    storage/app/documents \
+    storage/app/public \
     bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
@@ -79,4 +83,4 @@ ENV APP_DEBUG=false
 
 EXPOSE 80
 
-CMD ["sh", "-c", "php artisan optimize && exec frankenphp run --config /etc/caddy/Caddyfile"]
+CMD ["/app/docker-entrypoint.sh"]
